@@ -48,5 +48,5 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
         ],
       ),
     );
-  }
+  }//
 }
