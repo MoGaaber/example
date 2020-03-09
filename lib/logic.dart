@@ -46,10 +46,10 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  void startDownload(String url) async {
+  void startDownload(String url, String name) async {
     await FlutterDownloader.enqueue(
       savedDir: Constants.path,
-      fileName: 'hello.mp4',
+      fileName: '$name.mp4',
       url: url,
     );
   }
