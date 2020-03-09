@@ -68,4 +68,5 @@ class Logic with ChangeNotifier {
         .querySelector('meta[property="og:video"]')
         .attributes['content'];
   }
+  //
 }
