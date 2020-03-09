@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_downloader_example/logic.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:provider/provider.dart';
 
 import 'constants.dart';
 
@@ -46,19 +48,9 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    Logic logic = Provider.of(context);
     Downloading('انا مش شايف قدامى');
     return Scaffold(
-      floatingActionButton: FloatingActionButton(onPressed: () {
-        http.get('https://www.instagram.com/p/B6_dwiPJBHK/').then((x) {
-          String body = x.body;
-          var document = parse(body);
-          var yx = document
-              .querySelector('meta[property="og:title"]')
-              .attributes['content'];
-          ;
-          print(yx);
-        });
-      }),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -71,9 +63,12 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
             width: 300,
             height: 50,
             child: FlatButton(
-              onPressed: () {},
+              onPressed: () async {
+                logic.startDownload(
+                    await logic.getVideoDownloadLink(this.controller.text));
+              },
               child: Text(
-                'Login',
+                'تحميل',
                 style: TextStyle(color: Colors.white),
               ),
               color: Colors.purple,
