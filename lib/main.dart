@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:flutter_downloader_example/info.dart';
+import 'package:flutter_downloader_example/insta.dart';
+import 'package:flutter_downloader_example/logic.dart';
+import 'package:flutter_downloader_example/saves.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
-void main() => runApp(MaterialApp(home: BottomNavBar()));
+void main() => runApp(MaterialApp(
+        home: ChangeNotifierProvider(
+      child: BottomNavBar(),
+      create: (BuildContext context) => Logic(),
+    )));
 
 class BottomNavBar extends StatefulWidget {
   @override
@@ -13,28 +24,38 @@ class BottomNavBar extends StatefulWidget {
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  int _page = 0;
-  GlobalKey _bottomNavigationKey = GlobalKey();
+  int index = 0;
+  List<Widget> pages = [Insta(TargetPlatform.android), Saves(), Info()];
+  Future<bool> checkPermission() async {
+    if (Platform.isAndroid) {
+      PermissionStatus permission = await PermissionHandler()
+          .checkPermissionStatus(PermissionGroup.storage);
+      if (permission != PermissionStatus.granted) {
+        Map<PermissionGroup, PermissionStatus> permissions =
+            await PermissionHandler()
+                .requestPermissions([PermissionGroup.storage]);
+        if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    } else {
+      return true;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
-
-
-
-
-
-    http.get('https://www.instagram.com/p/B9hFD6ShE9y/').then((x) {
-      var map = parse(x.body)
-              .body
-              .querySelectorAll('script[type="text/javascript"]')[0]
-              ));
-
-      print(map);
-    });
-
-    return Scaffold(
+    return SafeArea(
+      child: Scaffold(                    appBar: AppBar(
+        backgroundColor: Colors.purple,
+        centerTitle: true,
+        title: Text('Insta Down Pro'),
+      ),
+        backgroundColor: Colors.white,
         bottomNavigationBar: CurvedNavigationBar(
-          key: _bottomNavigationKey,
           index: 0,
           height: 50.0,
           items: <Widget>[
@@ -42,35 +63,46 @@ class _BottomNavBarState extends State<BottomNavBar> {
             Icon(Icons.save, size: 30),
             Icon(Icons.library_books, size: 30),
           ],
-          color: Colors.white,
-          buttonBackgroundColor: Colors.white,
-          backgroundColor: Colors.blueAccent,
+          color: Colors.purple,
+          buttonBackgroundColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
           animationCurve: Curves.easeInOut,
           animationDuration: Duration(milliseconds: 600),
           onTap: (index) {
             setState(() {
-              _page = index;
+              this.index = index;
             });
           },
         ),
-        body: Container(
-          color: Colors.blueAccent,
-          child: Center(
-            child: Column(
-              children: <Widget>[
-                Text(_page.toString(), textScaleFactor: 10.0),
-                RaisedButton(
-                  child: Text('Go To Page of index 1'),
-                  onPressed: () {
-                    final CurvedNavigationBarState navBarState =
-                        _bottomNavigationKey.currentState;
-                    navBarState.setPage(1);
-                  },
-                )
-              ],
-            ),
-          ),
-        ));
+
+        body: FutureBuilder(
+          future: checkPermission(),
+          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            if(snapshot.connectionState==ConnectionState.done){
+              if(snapshot.data){
+                return pages[index];
+
+              }
+              else{
+
+
+                return Center(child: FlatButton(onPressed: () async {
+                 await checkPermission();
+
+                 setState(() {
+
+                 });
+
+                }, child:Text('check again')),);
+              }
+
+            }else{
+              return Center(child: CircularProgressIndicator(),);
+            }
+          },
+        ),
+      ),
+    );
   }
 }
 

@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
+import 'package:html/dom.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
@@ -10,6 +14,12 @@ import 'package:html/parser.dart' show parse;
 typedef DownloadOperations(String id);
 
 class Logic with ChangeNotifier {
+  ReceivePort _port = ReceivePort();
+
+  Logic() {
+    FlutterDownloader.initialize();
+    _bindBackgroundIsolate();
+  }
   void downloadOperations(String id, DownloadOperations downloadOperations) {
     downloadOperations(id);
   }
@@ -46,8 +56,8 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  void startDownload(String url, String name) async {
-    await FlutterDownloader.enqueue(
+  Future<String> startDownload(String url, String name) async {
+    return await FlutterDownloader.enqueue(
       savedDir: Constants.path,
       fileName: '$name.mp4',
       url: url,
@@ -62,11 +72,59 @@ class Logic with ChangeNotifier {
     String newTaskId = await FlutterDownloader.retry(taskId: id);
   }
 
-  Future<String> getVideoDownloadLink(String originalUrl) async {
+  Future<Map<String, String>> getVideoInfo(String originalUrl) async {
     var response = await http.get(originalUrl);
-    return parse(response.body)
-        .querySelector('meta[property="og:video"]')
+    var document = parse(response.body).body;
+
+    String name = parse(response.body)
+        .querySelector('meta[property="og:title"]')
         .attributes['content'];
+
+    var text = document.querySelector('script[type="text/javascript"]').text;
+    text = (text.substring(text.indexOf('{'), text.length - 1));
+    Map<String, dynamic> decoded = jsonDecode(text);
+    Map<String, dynamic> root =
+        decoded['entry_data']['PostPage'][0]['graphql']['shortcode_media'];
+
+    if (root.containsKey('video_url')) {
+      return {'url': root['video_url'], 'name': name};
+    } else {
+      return {
+        'url': root['edge_sidecar_to_children']['edges'][0]['node']
+            ['video_url'],
+        'name': name
+      };
+    }
   }
-  //
+
+  static void downloadCallback(
+      String id, DownloadTaskStatus status, int progress) {
+    print(
+        'Background Isolate Callback: task ($id) is in status ($status) and process ($progress)');
+    final SendPort send =
+        IsolateNameServer.lookupPortByName('downloader_send_port');
+    send.send([id, status, progress]);
+
+print(status.toString()+'!!!!!!!!!!!!!');
+  }
+
+  void _unbindBackgroundIsolate() {
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+  }
+
+  void _bindBackgroundIsolate() {
+    bool isSuccess = IsolateNameServer.registerPortWithName(
+        _port.sendPort, 'downloader_send_port');
+    if (!isSuccess) {
+      _unbindBackgroundIsolate();
+      _bindBackgroundIsolate();
+      return;
+    }
+    _port.listen((dynamic data) {
+      print('UI Isolate Callback: $data');
+      String id = data[0];
+      DownloadTaskStatus status = data[1];
+      int progress = data[2];
+    });
+  }
 }
