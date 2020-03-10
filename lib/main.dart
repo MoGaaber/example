@@ -1,4 +1,81 @@
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' show parse;
+
+void main() => runApp(MaterialApp(home: BottomNavBar()));
+
+class BottomNavBar extends StatefulWidget {
+  @override
+  _BottomNavBarState createState() => _BottomNavBarState();
+}
+
+class _BottomNavBarState extends State<BottomNavBar> {
+  int _page = 0;
+  GlobalKey _bottomNavigationKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+
+
+
+
+
+    http.get('https://www.instagram.com/p/B9hFD6ShE9y/').then((x) {
+      var map = parse(x.body)
+              .body
+              .querySelectorAll('script[type="text/javascript"]')[0]
+              ));
+
+      print(map);
+    });
+
+    return Scaffold(
+        bottomNavigationBar: CurvedNavigationBar(
+          key: _bottomNavigationKey,
+          index: 0,
+          height: 50.0,
+          items: <Widget>[
+            Icon(Icons.cloud_download, size: 30),
+            Icon(Icons.save, size: 30),
+            Icon(Icons.library_books, size: 30),
+          ],
+          color: Colors.white,
+          buttonBackgroundColor: Colors.white,
+          backgroundColor: Colors.blueAccent,
+          animationCurve: Curves.easeInOut,
+          animationDuration: Duration(milliseconds: 600),
+          onTap: (index) {
+            setState(() {
+              _page = index;
+            });
+          },
+        ),
+        body: Container(
+          color: Colors.blueAccent,
+          child: Center(
+            child: Column(
+              children: <Widget>[
+                Text(_page.toString(), textScaleFactor: 10.0),
+                RaisedButton(
+                  child: Text('Go To Page of index 1'),
+                  onPressed: () {
+                    final CurvedNavigationBarState navBarState =
+                        _bottomNavigationKey.currentState;
+                    navBarState.setPage(1);
+                  },
+                )
+              ],
+            ),
+          ),
+        ));
+  }
+}
+
+/*
+import 'dart:convert';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -548,3 +625,4 @@ class _ItemHolder {
 
   _ItemHolder({this.name, this.task});
 }
+*/

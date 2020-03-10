@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
-import 'package:html/dom.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
@@ -66,20 +64,9 @@ class Logic with ChangeNotifier {
 
   Future<String> getVideoDownloadLink(String originalUrl) async {
     var response = await http.get(originalUrl);
-    var document = parse(response.body).body;
-
-    var text = document.querySelector('script[type="text/javascript"]').text;
-    text = (text.substring(text.indexOf('{'), text.length - 1));
-    Map<String, dynamic> decoded = jsonDecode(text);
-    Map<String, dynamic> root =
-        decoded['entry_data']['PostPage'][0]['graphql']['shortcode_media'];
-
-    if (root.containsKey('video_url')) {
-      return (root['video_url']);
-    } else {
-      return (root['edge_sidecar_to_children']['edges'][0]['node']
-          ['video_url']);
-    }
+    return parse(response.body)
+        .querySelector('meta[property="og:video"]')
+        .attributes['content'];
   }
   //
 }
