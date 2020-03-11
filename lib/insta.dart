@@ -136,12 +136,14 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
                 child: Center(
                   child: Column(
                     children: <Widget>[
-                   this.thumbnail ==null ? Container():   Image.network(
-                        this.thumbnail,
-                        height: 200,
-                        width: 200,
-                        fit: BoxFit.cover,
-                      ),
+                      this.thumbnail == null
+                          ? Container()
+                          : Image.network(
+                              this.thumbnail,
+                              height: 200,
+                              width: 200,
+                              fit: BoxFit.cover,
+                            ),
                       Text(
                         this.title,
                         style: TextStyle(fontSize: 20),
