@@ -12,11 +12,19 @@ import 'package:html/parser.dart' show parse;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-void main() => runApp(MaterialApp(
+void main() => runApp(MyApp());
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: ChangeNotifierProvider(
-      child: BottomNavBar(),
-      create: (BuildContext context) => Logic(),
-    )));
+          child: BottomNavBar(),
+          create: (BuildContext context) => Logic(),
+        ));
+  }
+}
 
 class BottomNavBar extends StatefulWidget {
   @override
@@ -48,12 +56,24 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
   @override
   Widget build(BuildContext context) {
+    http.get('https://www.instagram.com/p/BzBomYmAnUc/').then((x) {
+      print('finish');
+      var html = parse(x.body);
+//      var tags = html.querySelectorAll('meta[property="video:tag"]');
+//      for (var element in tags) {
+//        print(element.attributes['content']);
+//      }
+      var query =
+          html.querySelector('meta[property="og:title"]').attributes['content'];
+      print(query);
+    });
     return SafeArea(
-      child: Scaffold(                    appBar: AppBar(
-        backgroundColor: Colors.purple,
-        centerTitle: true,
-        title: Text('Insta Down Pro'),
-      ),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.purple,
+          centerTitle: true,
+          title: Text('Insta Down Pro'),
+        ),
         backgroundColor: Colors.white,
         bottomNavigationBar: CurvedNavigationBar(
           index: 0,
@@ -74,30 +94,27 @@ class _BottomNavBarState extends State<BottomNavBar> {
             });
           },
         ),
-
         body: FutureBuilder(
           future: checkPermission(),
           builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-            if(snapshot.connectionState==ConnectionState.done){
-              if(snapshot.data){
+            if (snapshot.connectionState == ConnectionState.done) {
+              if (snapshot.data) {
                 return pages[index];
+              } else {
+                return Center(
+                  child: FlatButton(
+                      onPressed: () async {
+                        await checkPermission();
 
+                        setState(() {});
+                      },
+                      child: Text('check again')),
+                );
               }
-              else{
-
-
-                return Center(child: FlatButton(onPressed: () async {
-                 await checkPermission();
-
-                 setState(() {
-
-                 });
-
-                }, child:Text('check again')),);
-              }
-
-            }else{
-              return Center(child: CircularProgressIndicator(),);
+            } else {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
             }
           },
         ),

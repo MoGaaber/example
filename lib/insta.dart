@@ -33,116 +33,254 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
   TargetPlatform platform;
   Insta(this.platform);
   TextEditingController controller = TextEditingController();
-  String videoName;
+
+  String title, hashtags, thumbnail;
+
   @override
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Center(
-              child: Row(
+
+    return ListView(
+      padding: EdgeInsets.only(bottom: 60),
+      children: <Widget>[
+        Padding(
+          padding: EdgeInsets.only(top: 30),
+        ),
+        Image.network(
+          'https://upload.wikimedia.org/wikipedia/commons/b/be/Lineage_OS_Logo.png',
+          height: 100,
+          width: 100,
+          color: Colors.purple,
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: 30),
+        ),
+        Center(
+            child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
             children: <Widget>[
-              Expanded(
-                flex: 5,
+              Flexible(
+                flex: 6,
                 child: Stack(
                   children: <Widget>[
-                    TextField(decoration: InputDecoration(hintText: 'https://www.instagram.com/'),
+                    TextField(
+                      decoration: InputDecoration(
+                          border: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.purple)),
+                          focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.purple)),
+                          enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.purple)),
+                          labelText: 'https://www.instagram.com/p/'),
                       controller: this.controller,
-                    )
-                ],
-                ),
-              ),
-              Spacer(),
-              Flexible(
-                  flex: 2,
-                  child: SizedBox(
-                      child: FlatButton(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(5))),
-                    onPressed: () async {
-                      var data = await Clipboard.getData(Clipboard.kTextPlain);
-                      controller.text = data.text;
-                      logic.notifyListeners();
-
-                      var response = await http.get(controller.text);
-                      String name = parse(response.body)
-                          .querySelector('meta[property="og:title"]')
-                          .attributes['content'];
-                      videoName = name;
-                      logic.notifyListeners();
-                    },
-                    child: Text(
-                      'لصق',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    color: Colors.purple,
-                  )))
-            ],
-          )),
-          Padding(padding: EdgeInsets.symmetric(vertical: 20)),
-          this.videoName == null
-              ? Container()
-              : Column(
-                  children: <Widget>[
-                    Text(this.videoName),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: Builder(
-                            builder: (BuildContext context) => FlatButton(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(10))),
-                                color: Colors.purple,
-                                onPressed: () async {
-                                  await Clipboard.setData(
-                                      ClipboardData(text: this.videoName));
-
-
-
-                                  this.videoName = '';
-                                  logic.notifyListeners();
-                                  Scaffold.of(context).showSnackBar(SnackBar(
-                                    content: Text(
-                                      'تم النسخ بنجاح',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.purple,
-                                    behavior: SnackBarBehavior.floating,
-                                  ));
-                                },
-                                child: Icon(
-                                  Icons.content_copy,
-                                  color: Colors.white,
-                                )),
-                          )),
                     )
                   ],
                 ),
-          Padding(padding: EdgeInsets.only(top: 50)),
-          SizedBox(
+              ),
+              Padding(padding: EdgeInsets.symmetric(horizontal: 10)),
+              Row(
+                children: <Widget>[
+                  Container(
+                      decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                      width: 50,
+                      height: 50,
+                      child: IconButton(
+                        onPressed: () async {
+                          var data =
+                              await Clipboard.getData(Clipboard.kTextPlain);
+                          controller.text = data.text;
+
+//                          var response = await http.get(controller.text);
+//                          String name = parse(response.body)
+//                              .querySelector('meta[property="og:title"]')
+//                              .attributes['content'];
+//                          title = name;
+//                          logic.notifyListeners();
+                        },
+                        icon: Icon(
+                          Icons.content_paste,
+                          color: Colors.white,
+                        ),
+                        color: Colors.purple,
+                      )),
+                  Padding(padding: EdgeInsets.symmetric(horizontal: 5)),
+                  Container(
+                      decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.all(Radius.circular(10))),
+                      width: 50,
+                      height: 50,
+                      child: IconButton(
+                        onPressed: () async {
+                          controller.clear();
+                        },
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.white,
+                        ),
+                        color: Colors.purple,
+                      )),
+                ],
+              )
+            ],
+          ),
+        )),
+        Padding(padding: EdgeInsets.symmetric(vertical: 10)),
+        this.title == null
+            ? Container()
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Center(
+                  child: Column(
+                    children: <Widget>[
+                      Image.network(
+                        this.thumbnail,
+                        height: 200,
+                        width: 200,
+                        fit: BoxFit.cover,
+                      ),
+                      Text(
+                        this.title,
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            SizedBox(
+                                width: 50,
+                                height: 50,
+                                child: Builder(
+                                  builder: (BuildContext context) => FlatButton(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(10))),
+                                      color: Colors.purple,
+                                      onPressed: () async {
+                                        await Clipboard.setData(
+                                            ClipboardData(text: this.title));
+
+                                        this.title = '';
+                                        logic.notifyListeners();
+                                        Scaffold.of(context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text(
+                                            'تم النسخ العنوان بنجاح',
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                          backgroundColor: Colors.purple,
+                                          behavior: SnackBarBehavior.floating,
+                                        ));
+                                      },
+                                      child: Icon(
+                                        Icons.text_fields,
+                                        color: Colors.white,
+                                      )),
+                                )),
+                            Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6)),
+                            SizedBox(
+                                width: 50,
+                                height: 50,
+                                child: Builder(
+                                  builder: (BuildContext context) => FlatButton(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(10))),
+                                      color: Colors.purple,
+                                      onPressed: () async {
+                                        await Clipboard.setData(
+                                            ClipboardData(text: this.hashtags));
+                                        Scaffold.of(context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text(
+                                            'تم النسخ الهاشتاجات بنجاح',
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                          backgroundColor:
+                                              Colors.deepOrangeAccent,
+                                          behavior: SnackBarBehavior.floating,
+                                        ));
+                                      },
+                                      child: Text(
+                                        '#',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 30),
+                                      )),
+                                )),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Center(
+            child: SizedBox(
+              width: 300,
+              height: 60,
+              child: FlatButton.icon(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                onPressed: () async {
+                  this.title = '';
+                  logic.notifyListeners();
+                  var info = await logic.getVideoInfo(controller.text);
+                  print(info);
+                  this.title = info['title'];
+                  this.hashtags = info['hashtags'];
+                  this.thumbnail = info['thumbnail'];
+                  print(hashtags + '!!!!' + thumbnail);
+
+                  logic.notifyListeners();
+                },
+                icon: Icon(
+                  Icons.arrow_downward,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  'تحميل',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700),
+                ),
+                color: Colors.purple,
+              ),
+            ),
+          ),
+        ),
+        Padding(padding: EdgeInsets.symmetric(vertical: 10)),
+        Center(
+          child: SizedBox(
             width: 300,
             height: 60,
             child: FlatButton(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20))),
+                  borderRadius: BorderRadius.all(Radius.circular(10))),
               onPressed: () async {
-                this.videoName = '';
+                this.title = '';
                 logic.notifyListeners();
                 var info = await logic.getVideoInfo(controller.text);
+                this.title = info['name'];
+                this.hashtags = info['hashtags'];
+                this.thumbnail = info['thumbnail'];
+                print(hashtags + '!!!!' + thumbnail);
 
                 logic.startDownload(info['url'], Uuid().v1());
 
-                this.videoName = info['name'];
                 logic.notifyListeners();
               },
               child: Text(
-                'تحميل',
+                'عرض',
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -151,8 +289,32 @@ class Insta extends StatelessWidget with WidgetsBindingObserver {
               color: Colors.purple,
             ),
           ),
-        ],
-      ),
+        ),
+        Padding(padding: EdgeInsets.symmetric(vertical: 10)),
+        Center(
+          child: SizedBox(
+            width: 300,
+            height: 60,
+            child: FlatButton(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10))),
+              onPressed: () async {
+                this.title = null;
+
+                logic.notifyListeners();
+              },
+              child: Text(
+                'الغاء',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700),
+              ),
+              color: Colors.purple,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

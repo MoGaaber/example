@@ -74,11 +74,21 @@ class Logic with ChangeNotifier {
 
   Future<Map<String, String>> getVideoInfo(String originalUrl) async {
     var response = await http.get(originalUrl);
-    var document = parse(response.body).body;
+    var body = parse(response.body);
+    var document = body.body;
 
-    String name = parse(response.body)
-        .querySelector('meta[property="og:title"]')
-        .attributes['content'];
+    String title =
+        body.querySelector('meta[property="og:title"]').attributes['content'];
+
+    title = title.substring(title.indexOf(':') + 1, title.length);
+    var hashtagList = body.querySelectorAll('meta[property="video:tag"]');
+    String thumbnail =
+        body.querySelector('meta[property="og:image"]').attributes['content'];
+
+    var hashtags = '';
+    for (var element in hashtagList) {
+      hashtags += '#${element.attributes['content']} ';
+    }
 
     var text = document.querySelector('script[type="text/javascript"]').text;
     text = (text.substring(text.indexOf('{'), text.length - 1));
@@ -87,12 +97,20 @@ class Logic with ChangeNotifier {
         decoded['entry_data']['PostPage'][0]['graphql']['shortcode_media'];
 
     if (root.containsKey('video_url')) {
-      return {'url': root['video_url'], 'name': name};
+      return {
+        'url': root['video_url'],
+        'name': title,
+        'hashtags': hashtags,
+        'title': title,
+        'thumbnail': thumbnail
+      };
     } else {
       return {
+        'hashtags': hashtags,
         'url': root['edge_sidecar_to_children']['edges'][0]['node']
             ['video_url'],
-        'name': name
+        'title': title,
+        'thumbnail': thumbnail
       };
     }
   }
@@ -105,7 +123,7 @@ class Logic with ChangeNotifier {
         IsolateNameServer.lookupPortByName('downloader_send_port');
     send.send([id, status, progress]);
 
-print(status.toString()+'!!!!!!!!!!!!!');
+    print(status.toString() + '!!!!!!!!!!!!!');
   }
 
   void _unbindBackgroundIsolate() {
