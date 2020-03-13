@@ -3,9 +3,12 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
+import 'package:flutter_downloader_example/post.dart';
 import 'package:html/dom.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
@@ -15,11 +18,26 @@ typedef DownloadOperations(String id);
 
 class Logic with ChangeNotifier {
   ReceivePort _port = ReceivePort();
-
+  num progress = 0;
   Logic() {
-    FlutterDownloader.initialize();
-    _bindBackgroundIsolate();
+    FlutterDownloader.initialize().then((x) {
+      _bindBackgroundIsolate();
+      FlutterDownloader.registerCallback(downloadCallback);
+    });
   }
+  TextEditingController controller = TextEditingController();
+
+  Future<void> pasteUrl() async {
+    var data = await Clipboard.getData(Clipboard.kTextPlain);
+    controller.text = data.text;
+  }
+
+  void confirm() {}
+
+  void delete() {
+    controller.clear();
+  }
+
   void downloadOperations(String id, DownloadOperations downloadOperations) {
     downloadOperations(id);
   }
@@ -72,47 +90,74 @@ class Logic with ChangeNotifier {
     String newTaskId = await FlutterDownloader.retry(taskId: id);
   }
 
-  Future<Map<String, String>> getVideoInfo(String originalUrl) async {
+  Future<Post> getVideoInfo(String originalUrl) async {
     var response = await http.get(originalUrl);
-    var body = parse(response.body);
-    var document = body.body;
+    var htmlDocument = parse(response.body);
+    var htmlBody = htmlDocument.body;
+    var scriptElement =
+        htmlBody.querySelector('script[type="text/javascript"]').text;
 
-    String title =
-        body.querySelector('meta[property="og:title"]').attributes['content'];
+    var mappedScriptElement = jsonDecode(scriptElement.substring(
+        scriptElement.indexOf('{'), scriptElement.length - 1));
+
+    Map<String, dynamic> scriptElementRoot = mappedScriptElement['entry_data']
+        ['PostPage'][0]['graphql']['shortcode_media'];
+
+// get title of video or image
+    String title = htmlDocument
+        .querySelector('meta[property="og:title"]')
+        .attributes['content'];
 
     title = title.substring(title.indexOf(':') + 1, title.length);
-    var hashtagList = body.querySelectorAll('meta[property="video:tag"]');
-    String thumbnail =
-        body.querySelector('meta[property="og:image"]').attributes['content'];
+
+    var date = jsonDecode(htmlDocument
+        .querySelector('script[type="application/ld+json"]')
+        .text)['uploadDate'];
+
+    var owner = scriptElementRoot['owner'];
+
+    var profilePic = owner['profile_pic_url'];
+    var userName = owner['username'];
+    var thumbnail = scriptElementRoot['display_url'];
+
+    // get hashtags and video
+    var type = htmlDocument
+        .querySelector('meta[property="og:type"]')
+        .attributes['content'];
+
+    var propertyHashtagName;
+
+    var downloadLink;
+
+    if (scriptElementRoot.containsKey('video_url')) {
+      downloadLink = scriptElementRoot['video_url'];
+    } else if (scriptElementRoot.containsKey('edge_sidecar_to_children')) {
+      downloadLink = scriptElementRoot['edge_sidecar_to_children']['edges'][0]
+          ['node']['video_url'];
+    } else {
+      downloadLink = thumbnail;
+    }
+
+    if (type == 'video') {
+      propertyHashtagName = 'video:tag';
+    } else {
+      propertyHashtagName = 'instapp:hashtags';
+    }
+    var hashtagList =
+        htmlDocument.querySelectorAll('meta[property="$propertyHashtagName"]');
 
     var hashtags = '';
     for (var element in hashtagList) {
       hashtags += '#${element.attributes['content']} ';
     }
 
-    var text = document.querySelector('script[type="text/javascript"]').text;
-    text = (text.substring(text.indexOf('{'), text.length - 1));
-    Map<String, dynamic> decoded = jsonDecode(text);
-    Map<String, dynamic> root =
-        decoded['entry_data']['PostPage'][0]['graphql']['shortcode_media'];
-
-    if (root.containsKey('video_url')) {
-      return {
-        'url': root['video_url'],
-        'name': title,
-        'hashtags': hashtags,
-        'title': title,
-        'thumbnail': thumbnail
-      };
-    } else {
-      return {
-        'hashtags': hashtags,
-        'url': root['edge_sidecar_to_children']['edges'][0]['node']
-            ['video_url'],
-        'title': title,
-        'thumbnail': thumbnail
-      };
-    }
+    return Post(
+        title: title,
+        date: date,
+        downloadUrl: downloadLink,
+        hashtags: hashtags,
+        owner: Owner(
+            profilePic: profilePic, thumbnail: thumbnail, userName: userName));
   }
 
   static void downloadCallback(
@@ -139,10 +184,16 @@ class Logic with ChangeNotifier {
       return;
     }
     _port.listen((dynamic data) {
+      print(data.toString() + '!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
       print('UI Isolate Callback: $data');
-      String id = data[0];
+      this.id = data[0];
       DownloadTaskStatus status = data[1];
-      int progress = data[2];
+      this.progress = data[2];
+      notifyListeners();
+
+      print(status);
     });
   }
+
+  String id;
 }

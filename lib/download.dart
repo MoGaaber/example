@@ -1,4 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:launch_review/launch_review.dart';
+import 'package:share/share.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:html/parser.dart' show parse;
+import 'package:http/http.dart' as http;
 
 class DownloadPage extends StatelessWidget {
   List<Map> buttons = [
@@ -14,11 +23,189 @@ class DownloadPage extends StatelessWidget {
   ];
   @override
   Widget build(BuildContext context) {
+    var link1 = 'https://www.instagram.com/p/B9pQAz0lAOe/'; // video
+    var link2 = 'https://www.instagram.com/p/B9jXRGshclD/'; // image
+    var link3 = 'https://www.instagram.com/p/B9mMl4yBKfH/'; // video
+    var link4 = 'https://www.instagram.com/p/B9UAiGOlbUp/'; // video
+    var link5 = 'https://www.instagram.com/p/B9ovaM5geVf/'; //video
+    var link6 = 'https://www.instagram.com/p/B4gNiEbDpxd/'; // photo
+    var link7 = 'https://www.instagram.com/p/BVc1kGHBfCo/'; // photo
+    var link8 = 'https://www.instagram.com/p/B9rAjkilMGF/'; // photo
+
+    http.get(link8).then((response) {
+    /*  var htmlDocument = parse(response.body);
+      var htmlBody = htmlDocument.body;
+// get title of video or image
+      String title = htmlDocument
+          .querySelector('meta[property="og:title"]')
+          .attributes['content'];
+
+      title = title.substring(title.indexOf(':') + 1, title.length);
+
+// get date
+      var date = jsonDecode(htmlDocument
+          .querySelector('script[type="application/ld+json"]')
+          .text)['uploadDate'];
+//initialize
+      var scriptElement =
+          htmlBody.querySelector('script[type="text/javascript"]').text;
+
+      var mappedScriptElement = jsonDecode(scriptElement.substring(
+          scriptElement.indexOf('{'), scriptElement.length - 1));
+
+      Map<String, dynamic> root = mappedScriptElement['entry_data']['PostPage']
+          [0]['graphql']['shortcode_media'];
+
+      var owner = root['owner'];
+
+      // profile pic
+      var profilePic = owner['profile_pic_url'];
+// user Name
+      var userName = owner['username'];
+      // thumbnail
+      var thumbnail = root['display_url'];
+
+      // get hashtags and video
+      var type = htmlDocument
+          .querySelector('meta[property="og:type"]')
+          .attributes['content'];
+
+      var propertyHashtagName;
+
+      var downloadLink;
+
+      if (root.containsKey('video_url')) {
+        downloadLink = root['video_url'];
+      } else if (root.containsKey('edge_sidecar_to_children')) {
+        downloadLink =
+            root['edge_sidecar_to_children']['edges'][0]['node']['video_url'];
+      } else {
+        downloadLink = thumbnail;
+      }
+
+      if (type == 'video') {
+        propertyHashtagName = 'video:tag';
+
+*//*
+*//*
+
+      } else {
+        propertyHashtagName = 'instapp:hashtags';
+      }
+      var hashtagList = htmlDocument
+          .querySelectorAll('meta[property="$propertyHashtagName"]');
+
+      var hashtags = '';
+      for (var element in hashtagList) {
+        hashtags += '#${element.attributes['content']} ';
+      }*/
+/*
+print(type);
+      print(hashtags);
+      print(thumbnail);
+      print(userName);
+      print(profilePic);
+      print(title);
+      print(date);
+*/
+    });
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
           child: Scaffold(
-        drawer: Drawer(),
+        drawer: Drawer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              SizedBox.fromSize(
+                size: Size.fromHeight(250),
+                child: DrawerHeader(
+                  child: Center(
+                      child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Image.asset(
+                        'assets/images/fff.png',
+                        fit: BoxFit.contain,
+                        width: 130,
+                        color: Colors.orange,
+                      ),
+                      Padding(padding: EdgeInsets.symmetric(vertical: 5)),
+                      Text(
+                        'Car Note',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700),
+                      )
+                    ],
+                  )),
+                  decoration: BoxDecoration(
+                    color: Color(0xff250101),
+                  ),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                onTap: () {
+                  Share.share(
+                      'شارك تطبيقانا مع اصدقائك لتعم الفائده  https://play.google.com/store/apps/details?id=com.HNY.qurancareem',
+                      subject: 'Look what I made!');
+                },
+                leading: Icon(FontAwesomeIcons.share),
+                title: Text(
+                  'Share App',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Divider(),
+              ListTile(
+                onTap: () {
+                  LaunchReview.launch(androidAppId: "com.usatolebanese");
+                },
+                leading: Icon(
+                  Icons.star,
+                  color: Colors.orange,
+                  size: 28,
+                ),
+                title: Text(
+                  'Rate Us',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Divider(),
+              ListTile(
+                onTap: () async {
+                  const url = 'https://t.me/joinchat/AAAAAFQB7H0Zwq7l4vI4Yg';
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  } else {
+                    throw 'Could not launch $url';
+                  }
+                },
+                leading: Icon(
+                  FontAwesomeIcons.telegram,
+                  color: Colors.orange,
+                  size: 28,
+                ),
+                title: Text(
+                  'تابعنا علي قناة التلجرام',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         appBar: AppBar(
           iconTheme: IconThemeData(color: Colors.black),
           backgroundColor: Colors.white,
@@ -130,32 +317,48 @@ class DownloadPage extends StatelessWidget {
                       flex: 1,
                     ),
                     Builder(
-
-                    builder: (BuildContext context) =>    IconButton(
-                        icon: Icon(
-                          Icons.more_horiz,
-                          size: 30,
-                        ),
-                        onPressed: () {
-                          showBottomSheet(
-                              context: context,
-                              builder: (context) => Material(
-                                child: Column(mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    for (int i = 0; i < 4; i++)
-                                      ListTile(
-                                        title: Text(
-                                          'نسخ العنوان',
-                                          style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w700),
-                                        ),
-                                      )
-                                  ],
-                                ),
-                              ));
-                        }),
-
+                      builder: (BuildContext context) => IconButton(
+                          icon: Icon(
+                            Icons.more_horiz,
+                            size: 30,
+                          ),
+                          onPressed: () {
+                            showBottomSheet(
+                                context: context,
+                                builder: (context) => Material(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          for (int i = 0; i < 4; i++)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8),
+                                              child: Column(
+                                                children: <Widget>[
+                                                  ListTile(
+                                                    onTap: () {},
+                                                    leading: Icon(
+                                                        FontAwesomeIcons
+                                                            .envelopeOpenText),
+                                                    title: Text(
+                                                      'نسخ العنوان',
+                                                      style: GoogleFonts
+                                                          .youTubeSans(
+                                                              fontSize: 20,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w800),
+                                                    ),
+                                                  ),
+                                                  Divider()
+                                                ],
+                                              ),
+                                            )
+                                        ],
+                                      ),
+                                    ));
+                          }),
                     )
                   ],
                 ),
