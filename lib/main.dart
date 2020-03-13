@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:flutter_downloader_example/download.dart';
 import 'package:flutter_downloader_example/info.dart';
 import 'package:flutter_downloader_example/insta.dart';
 import 'package:flutter_downloader_example/logic.dart';
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: ChangeNotifierProvider(
-          child: BottomNavBar(),
+          child: DownloadPage(),
           create: (BuildContext context) => Logic(),
         ));
   }
