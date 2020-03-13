@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
@@ -17,13 +18,26 @@ import 'package:html/parser.dart' show parse;
 typedef DownloadOperations(String id);
 
 class Logic with ChangeNotifier {
+  List<Map> buttons;
+
   ReceivePort _port = ReceivePort();
   num progress = 0;
   Logic() {
-    FlutterDownloader.initialize().then((x) {
-      _bindBackgroundIsolate();
-      FlutterDownloader.registerCallback(downloadCallback);
-    });
+//    FlutterDownloader.initialize().then((x) {
+//      _bindBackgroundIsolate();
+//      FlutterDownloader.registerCallback(downloadCallback);
+//    });
+    buttons = [
+      {'text': 'تأكيد', 'color': Colors.green, 'onPressed': () {}},
+      {
+        'text': 'لصق',
+        'color': Colors.purple,
+        'onPressed': () {
+          pasteUrl();
+        }
+      },
+      {'text': 'إلغاء', 'color': Colors.purple, 'onPressed': () {}}
+    ];
   }
   TextEditingController controller = TextEditingController();
 
@@ -32,9 +46,14 @@ class Logic with ChangeNotifier {
     controller.text = data.text;
   }
 
-  void confirm() {}
+  var key = GlobalKey<FormState>();
 
-  void delete() {
+  void confirm() {
+    var isValid = key.currentState.validate();
+    if (isValid) {}
+  }
+
+  void clear() {
     controller.clear();
   }
 

@@ -19,10 +19,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        theme: ThemeData(
+            scaffoldBackgroundColor: Colors.white,
+            iconTheme: IconThemeData(color: Colors.white)),
         debugShowCheckedModeBanner: false,
-        home: ChangeNotifierProvider(
+        home: ChangeNotifierProvider.value(
           child: DownloadPage(),
-          create: (BuildContext context) => Logic(),
+          value: Logic(),
         ));
   }
 }
@@ -125,7 +128,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 }
 
-*//*
+*/ /*
 
 import 'dart:convert';
 import 'dart:isolate';

@@ -1,26 +1,21 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:launch_review/launch_review.dart';
+import 'package:progress_indicators/progress_indicators.dart';
+import 'package:provider/provider.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 
+import 'logic.dart';
+
 class DownloadPage extends StatelessWidget {
-  List<Map> buttons = [
-    {
-      'text': 'لصق',
-      'color': Colors.purple,
-      'onPressed': () {
-        print('!!');
-      }
-    },
-    {'text': 'تأكيد', 'color': Colors.purple},
-    {'text': 'إلغاء', 'color': Colors.purple}
-  ];
   @override
   Widget build(BuildContext context) {
     var link1 = 'https://www.instagram.com/p/B9pQAz0lAOe/'; // video
@@ -31,9 +26,12 @@ class DownloadPage extends StatelessWidget {
     var link6 = 'https://www.instagram.com/p/B4gNiEbDpxd/'; // photo
     var link7 = 'https://www.instagram.com/p/BVc1kGHBfCo/'; // photo
     var link8 = 'https://www.instagram.com/p/B9rAjkilMGF/'; // photo
+    (Clipboard.getData(Clipboard.kTextPlain).then((x) {
+      print(x.text);
+    }));
 
     http.get(link8).then((response) {
-    /*  var htmlDocument = parse(response.body);
+      /*  var htmlDocument = parse(response.body);
       var htmlBody = htmlDocument.body;
 // get title of video or image
       String title = htmlDocument
@@ -86,8 +84,8 @@ class DownloadPage extends StatelessWidget {
       if (type == 'video') {
         propertyHashtagName = 'video:tag';
 
-*//*
-*//*
+*/ /*
+*/ /*
 
       } else {
         propertyHashtagName = 'instapp:hashtags';
@@ -109,7 +107,7 @@ print(type);
       print(date);
 */
     });
-
+    Logic logic = Provider.of(context, listen: false);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
@@ -125,24 +123,11 @@ print(type);
                       child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Image.asset(
-                        'assets/images/fff.png',
-                        fit: BoxFit.contain,
-                        width: 130,
-                        color: Colors.orange,
-                      ),
                       Padding(padding: EdgeInsets.symmetric(vertical: 5)),
-                      Text(
-                        'Car Note',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700),
-                      )
                     ],
                   )),
                   decoration: BoxDecoration(
-                    color: Color(0xff250101),
+                    color: Colors.purple,
                   ),
                 ),
               ),
@@ -155,7 +140,7 @@ print(type);
                 },
                 leading: Icon(FontAwesomeIcons.share),
                 title: Text(
-                  'Share App',
+                  'شارك التطبيق',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -173,7 +158,7 @@ print(type);
                   size: 28,
                 ),
                 title: Text(
-                  'Rate Us',
+                  'اعطنا تقييم',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -214,34 +199,70 @@ print(type);
         body: ScrollConfiguration(
           behavior: ScrollBehavior(),
           child: ListView(
+            padding: EdgeInsets.only(top: 30, bottom: 50),
             children: <Widget>[
-              Padding(padding: EdgeInsets.only(top: 30)),
               Center(
-                child: SizedBox(
-                  width: 320,
-                  child: TextField(
-                    decoration: InputDecoration(
-                        prefixIcon: Icon(
-                          Icons.link,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    Flexible(
+                      flex: 9,
+                      child: Form(
+                        child: TextFormField(
+                          controller: logic.controller,
+                          key: logic.key,
+                          validator: (String text) {
+                            if (!text.contains('instagram.com/p/')) {
+                              return 'الرابط يجب ان يحتوي "instagram.com/p/" ';
+                            } else {
+                              return null;
+                            }
+                          },
+                          decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.link,
+                              ),
+                              contentPadding: EdgeInsets.all(18),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                                borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.purple,
+                                ),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                                borderSide: BorderSide(
+                                  color: Colors.purple,
+                                ),
+                              ),
+                              labelStyle: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w700),
+                              labelText: 'الصق الرابط هنا'),
                         ),
-                        contentPadding: EdgeInsets.all(15),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                          borderSide: BorderSide(
-                            width: 2,
-                            color: Colors.purple,
+                      ),
+                    ),
+                    Flexible(
+                      flex: 2,
+                      child: InkWell(
+                        onTap: () {
+                          logic.clear();
+                        },
+                        child: Container(
+                          child: Center(
+                            child: Icon(Icons.clear),
                           ),
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                              color: Colors.red, shape: BoxShape.circle),
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                          borderSide: BorderSide(
-                            color: Colors.purple,
-                          ),
-                        ),
-                        labelStyle: TextStyle(
-                            color: Colors.orange, fontWeight: FontWeight.w700),
-                        labelText: 'الصق الرابط هنا'),
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(padding: EdgeInsets.symmetric(vertical: 10)),
@@ -251,21 +272,24 @@ print(type);
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 2; i++)
                       ButtonTheme(
-                        minWidth: 100,
-                        height: 40,
+                        minWidth: 140,
+                        height: 50,
                         child: FlatButton(
                             shape: RoundedRectangleBorder(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(7))),
-                            color: buttons[i]['color'],
-                            onPressed: () {},
+                            color: logic.buttons[i]['color'],
+                            onPressed: () {
+                              logic.buttons[i]['onPressed']();
+                            },
                             child: Text(
-                              buttons[i]['text'],
-                              style: TextStyle(
+                              logic.buttons[i]['text'],
+                              style: GoogleFonts.cairo(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w700),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20),
                             )),
                       ),
                   ],
@@ -287,10 +311,11 @@ print(type);
                   children: <Widget>[
                     ClipRRect(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
-                      child: Image.network(
-                        'https://d3j2s6hdd6a7rg.cloudfront.net/v2/uploads/media/default/0001/77/thumb_76748_default_news_size_5.jpeg',
-                        height: 80,
-                        width: 80,
+                      child: CachedNetworkImage(
+                        imageUrl:
+                            'https://d3j2s6hdd6a7rg.cloudfront.net/v2/uploads/media/default/0001/77/thumb_76748_default_news_size_5.jpeg',
+                        height: 60,
+                        width: 60,
                         fit: BoxFit.cover,
                       ),
                     ),
