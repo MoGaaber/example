@@ -1,5 +1,5 @@
 class Post {
-  String title, downloadUrl, date, hashtags, taskId;
+  String title, downloadUrl, date, hashtags, taskId,thumbnail;
   Owner owner;
 
   Post(
@@ -7,7 +7,7 @@ class Post {
       this.downloadUrl,
       this.date,
       this.owner,
-      this.hashtags,
+      this.hashtags,this.thumbnail,
       this.taskId});
   Map<String, dynamic> toJson() {
     return {
@@ -16,20 +16,21 @@ class Post {
       'date': date,
       'hashtags': hashtags,
       'owner': owner.toJson(),
+      'thumbnail': thumbnail
+
     };
   }
 }
 
 class Owner {
-  String profilePic, userName, thumbnail;
+  String profilePic, userName ;
 
-  Owner({this.profilePic, this.userName, this.thumbnail});
+  Owner({this.profilePic, this.userName, });
 
   Map<String, dynamic> toJson() {
     return {
       'profilePic': profilePic,
       'userName': userName,
-      'thumbnail': thumbnail
     };
   }
 }

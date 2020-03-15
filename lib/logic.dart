@@ -13,6 +13,7 @@ import 'package:flutter_downloader_example/post.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'package:uuid/uuid.dart';
 
 typedef DownloadOperations(String id);
 
@@ -24,10 +25,9 @@ class Logic with ChangeNotifier {
   Animation<double> animation;
   AnimationController animationController;
   Logic(TickerProvider tickerProvider) {
-//    FlutterDownloader.initialize().then((x) {
-//      _bindBackgroundIsolate();
-//      FlutterDownloader.registerCallback(downloadCallback);
-//    });
+    _bindBackgroundIsolate();
+
+    FlutterDownloader.registerCallback(downloadCallback);
 
     animationController = AnimationController(
         vsync: tickerProvider, duration: Duration(seconds: 2));
@@ -76,12 +76,8 @@ class Logic with ChangeNotifier {
   Future<void> confirm() async {
     var isValid = key.currentState.validate();
     if (isValid) {
-      var post = await getVideoInfo(controller.text);
-      posts.add(post);
-      print(post);
-      print('!!');
+      posts.add(await getVideoInfo(controller.text));
       notifyListeners();
-      print('called');
     }
   }
 
@@ -125,10 +121,10 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  Future<String> startDownload(String url, String name) async {
+  Future<String> startDownload(String url,) async {
     return await FlutterDownloader.enqueue(
       savedDir: Constants.path,
-      fileName: '$name.mp4',
+      fileName: '${Uuid().v1()}.mp4',
       url: url,
     );
   }
@@ -207,19 +203,18 @@ class Logic with ChangeNotifier {
         date: date,
         downloadUrl: downloadLink,
         hashtags: hashtags,
+        thumbnail: thumbnail,
         owner: Owner(
-            profilePic: profilePic, thumbnail: thumbnail, userName: userName));
+
+            profilePic: profilePic,  userName: userName));
   }
 
   static void downloadCallback(
       String id, DownloadTaskStatus status, int progress) {
-    print(
-        'Background Isolate Callback: task ($id) is in status ($status) and process ($progress)');
     final SendPort send =
         IsolateNameServer.lookupPortByName('downloader_send_port');
-    send.send({'id': id, 'status': status, 'progress': progress});
+    send.send([id,status,progress]);
 
-    print(status.toString() + '!!!!!!!!!!!!!');
   }
 
   void _unbindBackgroundIsolate() {
@@ -235,6 +230,7 @@ class Logic with ChangeNotifier {
       return;
     }
     _port.listen((dynamic data) {
+/*
       notifyListeners();
       int index = posts.indexWhere((post) {
         if (post.taskId == data['id']) {
@@ -244,8 +240,8 @@ class Logic with ChangeNotifier {
         }
       });
       posts[index].taskId = data['id'];
+*/
     });
   }
 
-  String id;
 }

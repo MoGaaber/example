@@ -24,12 +24,7 @@ class DownloadPage extends StatelessWidget {
 
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: true);
-
-    List<Post> test = List();
-    test.add(Post(title: 'hello'));
-    print(test[0].title);
-    test[0].taskId = 'heloooo';
-    print(test[0].taskId);
+logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-salah-fc-liverpool-1548767052-20186.jpg');
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
@@ -255,7 +250,7 @@ class DownloadPage extends StatelessWidget {
                 endIndent: 30,
                 color: Colors.black.withOpacity(0.2),
               ),
-              for (int i = 0; i < 1; i++)
+              for (int i = 0; i < logic.posts.length; i++)
                 Container(
                   child: Column(
                     children: <Widget>[
@@ -266,55 +261,43 @@ class DownloadPage extends StatelessWidget {
                           textDirection: TextDirection.ltr,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Shimmer.fromColors(
-                                enabled: false,
-                                baseColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                child: true
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(8)),
-                                        child: CachedNetworkImage(
-                                          imageUrl:
-                                              'https://d3j2s6hdd6a7rg.cloudfront.net/v2/uploads/media/default/0001/77/thumb_76748_default_news_size_5.jpeg',
-                                          height: 60,
-                                          placeholder: (context, text) {
-                                            return SizedBox(
-                                                height: 60,
-                                                width: 60,
-                                                child: Center(
-                                                    child: Text('loading')));
-                                          },
-                                          width: 60,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (x, y, z) {
-                                            return Icon(
-                                              FontAwesomeIcons.eyeSlash,
-                                              size: 40,
-                                              color: Colors.purple,
-                                            );
-                                          },
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 60.0,
-                                        height: 60.0,
-                                        color: Colors.white,
-                                      )),
+                            ClipRRect(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
+                              child: CachedNetworkImage(
+                                imageUrl:logic.posts[i].owner.profilePic,
+                                height: 60,
+                                placeholder: (context, text) {
+                                  return SizedBox(
+                                      height: 60,
+                                      width: 60,
+                                      child: Center(child: Text('loading')));
+                                },
+                                width: 60,
+                                fit: BoxFit.cover,
+                                errorWidget: (x, y, z) {
+                                  return Icon(
+                                    FontAwesomeIcons.eyeSlash,
+                                    size: 40,
+                                    color: Colors.purple,
+                                  );
+                                },
+                              ),
+                            ),
                             Padding(
                               padding: const EdgeInsets.only(top: 5, left: 8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: <Widget>[
                                   Text(
-                                    'Mohamed Gaber',
+                                    logic.posts[i].owner.userName,
                                     style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 20),
                                   ),
                                   Padding(padding: EdgeInsets.only(top: 5)),
                                   Text(
-                                    '12/12/2015',
+                                    logic.posts[i].date,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w300,
                                     ),
@@ -328,7 +311,10 @@ class DownloadPage extends StatelessWidget {
                             Builder(
                                 builder: (BuildContext context) => InkWell(
                                       borderRadius: BorderRadius.circular(20),
-                                      onTap: () {},
+                                      onTap: () {
+                                        logic.startDownload(logic.posts[i].downloadUrl);
+
+                                      },
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: Icon(
@@ -342,6 +328,7 @@ class DownloadPage extends StatelessWidget {
                           ],
                         ),
                       ),
+                      Text(logic.posts[i].title),
                       Center(
                         child: ClipRRect(
                           borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -353,7 +340,7 @@ class DownloadPage extends StatelessWidget {
                                   child: Center(child: Text('loading')));
                             },
                             imageUrl:
-                                'https://images.pexels.com/photos/1252869/pexels-photo-1252869.jpeg?cs=srgb&dl=scenic-view-of-forest-during-night-time-1252869.jpg&fm=jpg',
+                                logic.posts[i].thumbnail,
                             height: 200,
                             fit: BoxFit.cover,
                             width: 330,

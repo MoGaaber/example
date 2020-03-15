@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/download.dart';
 import 'package:flutter_downloader_example/info.dart';
 import 'package:flutter_downloader_example/insta.dart';
@@ -14,7 +15,12 @@ import 'package:html/parser.dart' show parse;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-void main() => runApp(MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FlutterDownloader.initialize();
+
+
+  runApp(MyApp());}
 
 class MyApp extends StatefulWidget {
   @override
