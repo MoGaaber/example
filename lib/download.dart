@@ -24,7 +24,11 @@ class DownloadPage extends StatelessWidget {
 
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: true);
-logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-salah-fc-liverpool-1548767052-20186.jpg');
+    print(logic.controller.text);
+    http.get('https://www.instagram.com/p/B9wwwOEJCvy/?__a=1').then((x) {
+      print(jsonDecode(x.body)['graphql']['shortcode_media']
+          ['edge_media_to_caption']['edges'][0]['node']['text']);
+    });
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
@@ -251,7 +255,252 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                 color: Colors.black.withOpacity(0.2),
               ),
               for (int i = 0; i < logic.posts.length; i++)
-                Container(
+                logic.posts[i] == null
+                    ? Column(
+                        children: <Widget>[
+                          Container(
+                            child: Column(
+                              children: <Widget>[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 20),
+                                  child: Row(
+                                    textDirection: TextDirection.ltr,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Shimmer.fromColors(
+                                          enabled: false,
+                                          baseColor: Colors.black,
+                                          highlightColor: Colors.red,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(8))),
+                                            width: 60,
+                                            height: 60,
+                                          )),
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            top: 8, left: 8),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: <Widget>[
+                                            Shimmer.fromColors(
+                                              enabled: false,
+                                              baseColor: Colors.red,
+                                              highlightColor: Colors.purple,
+                                              child: Container(
+                                                height: 12,
+                                                width: 150,
+                                                decoration: BoxDecoration(
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                            Padding(
+                                                padding:
+                                                    EdgeInsets.only(top: 10)),
+                                            Shimmer.fromColors(
+                                              enabled: false,
+                                              baseColor: Colors.red,
+                                              highlightColor: Colors.purple,
+                                              child: Container(
+                                                height: 10,
+                                                width: 120,
+                                                decoration: BoxDecoration(
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Spacer(
+                                        flex: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  children: <Widget>[
+                                    for (int i = 1; i < 5; i++)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                            top: 5,
+                                            bottom: 5,
+                                            right: 20.0 * i,
+                                            left: 10),
+                                        child: Shimmer.fromColors(
+                                          enabled: false,
+                                          baseColor: Colors.red,
+                                          highlightColor: Colors.purple,
+                                          child: Container(
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                Padding(padding: EdgeInsets.only(top: 10)),
+                                Center(
+                                  child: Shimmer.fromColors(
+                                    enabled: false,
+                                    baseColor: Colors.red,
+                                    highlightColor: Colors.purple,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                      ),
+                                      height: 200,
+                                      width: 330,
+                                    ),
+                                  ),
+                                ),
+                                Divider()
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: <Widget>[
+                          Container(
+                            child: Column(
+                              children: <Widget>[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 20),
+                                  child: Row(
+                                    textDirection: TextDirection.ltr,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      ClipRRect(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(8)),
+                                          child: Image.network(
+                                            logic.posts[i].owner.profilePic,
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.cover,
+                                          )),
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            top: 5, left: 8),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: <Widget>[
+                                            Text(
+                                              logic.posts[i].owner.userName,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 20),
+                                            ),
+                                            Padding(
+                                                padding:
+                                                    EdgeInsets.only(top: 5)),
+                                            Text(
+                                              logic.posts[i].date,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w300,
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                      Spacer(
+                                        flex: 1,
+                                      ),
+                                      Builder(
+                                          builder: (BuildContext context) =>
+                                              InkWell(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                onTap: () {
+                                                  logic.startDownload(logic
+                                                      .posts[i].downloadUrl);
+                                                },
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: Icon(
+                                                    FontAwesomeIcons
+                                                        .solidArrowAltCircleDown,
+                                                    color: Colors.green,
+                                                    size: 35,
+                                                  ),
+                                                ),
+                                              ))
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    logic.posts[i].title,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                Center(
+                                  child: ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(10)),
+                                    child: CachedNetworkImage(
+                                      placeholder: (context, text) {
+                                        return SizedBox(
+                                            height: 200,
+                                            width: 330,
+                                            child: Center(
+                                                child:
+                                                    CircularProgressIndicator()));
+                                      },
+                                      imageUrl: logic.posts[i].thumbnail,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      width: 330,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(
+                                      child: SizedBox(
+                                    width: (280),
+                                    child: LinearProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.green),
+                                      value: 0.1,
+                                      backgroundColor:
+                                          Colors.purple.withOpacity(0.1),
+                                    ),
+                                  )),
+                                ),
+                                Divider()
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+            ],
+          ),
+        ),
+      )),
+    );
+  }
+
+  Widget postWidget() {}
+  /*
+                  Container(
                   child: Column(
                     children: <Widget>[
                       Padding(
@@ -265,13 +514,14 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                               borderRadius:
                                   BorderRadius.all(Radius.circular(8)),
                               child: CachedNetworkImage(
-                                imageUrl:logic.posts[i].owner.profilePic,
+                                imageUrl: logic.posts[i].owner.profilePic,
                                 height: 60,
                                 placeholder: (context, text) {
                                   return SizedBox(
                                       height: 60,
                                       width: 60,
-                                      child: Center(child: Text('loading')));
+                                      child: Center(
+                                          child: CircularProgressIndicator()));
                                 },
                                 width: 60,
                                 fit: BoxFit.cover,
@@ -312,8 +562,8 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                                 builder: (BuildContext context) => InkWell(
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: () {
-                                        logic.startDownload(logic.posts[i].downloadUrl);
-
+                                        logic.startDownload(
+                                            logic.posts[i].downloadUrl);
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -335,12 +585,12 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                           child: CachedNetworkImage(
                             placeholder: (context, text) {
                               return SizedBox(
-                                  height: 60,
-                                  width: 60,
-                                  child: Center(child: Text('loading')));
+                                  height: 200,
+                                  width: 330,
+                                  child: Center(
+                                      child: CircularProgressIndicator()));
                             },
-                            imageUrl:
-                                logic.posts[i].thumbnail,
+                            imageUrl: logic.posts[i].thumbnail,
                             height: 200,
                             fit: BoxFit.cover,
                             width: 330,
@@ -365,7 +615,12 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                   ),
                 ),
 
+   */
+
+  var list = [1, 2];
+}
 /*
+                         /*
                 Container(
                   child: Column(
                     children: <Widget>[
@@ -477,17 +732,7 @@ logic.startDownload('https://tmssl.akamaized.net//images/foto/normal/mohamed-sal
                   ),
                 ),
 */
-            ],
-          ),
-        ),
-      )),
-    );
-  }
-
-  var list = [1, 2];
-}
-/*
-                            showBottomSheet(
+   showBottomSheet(
                                 context: context,
                                 builder: (context) => Material(
                                       child: Column(

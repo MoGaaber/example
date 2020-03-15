@@ -76,7 +76,9 @@ class Logic with ChangeNotifier {
   Future<void> confirm() async {
     var isValid = key.currentState.validate();
     if (isValid) {
-      posts.add(await getVideoInfo(controller.text));
+      posts.add(null);
+      notifyListeners();
+      posts[posts.length - 1] = (await getVideoInfo(controller.text));
       notifyListeners();
     }
   }
@@ -121,7 +123,9 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  Future<String> startDownload(String url,) async {
+  Future<String> startDownload(
+    String url,
+  ) async {
     return await FlutterDownloader.enqueue(
       savedDir: Constants.path,
       fileName: '${Uuid().v1()}.mp4',
@@ -139,6 +143,7 @@ class Logic with ChangeNotifier {
 
   Future<Post> getVideoInfo(String originalUrl) async {
     var response = await http.get(originalUrl);
+    
     var htmlDocument = parse(response.body);
     var htmlBody = htmlDocument.body;
     var scriptElement =
@@ -204,17 +209,14 @@ class Logic with ChangeNotifier {
         downloadUrl: downloadLink,
         hashtags: hashtags,
         thumbnail: thumbnail,
-        owner: Owner(
-
-            profilePic: profilePic,  userName: userName));
+        owner: Owner(profilePic: profilePic, userName: userName));
   }
 
   static void downloadCallback(
       String id, DownloadTaskStatus status, int progress) {
     final SendPort send =
         IsolateNameServer.lookupPortByName('downloader_send_port');
-    send.send([id,status,progress]);
-
+    send.send([id, status, progress]);
   }
 
   void _unbindBackgroundIsolate() {
@@ -243,5 +245,4 @@ class Logic with ChangeNotifier {
 */
     });
   }
-
 }

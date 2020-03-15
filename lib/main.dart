@@ -19,8 +19,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize();
 
-
-  runApp(MyApp());}
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -32,6 +32,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
+            accentColor: Colors.purple,
             scaffoldBackgroundColor: Colors.white,
             iconTheme: IconThemeData(color: Colors.white)),
         debugShowCheckedModeBanner: false,
