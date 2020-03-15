@@ -8,6 +8,7 @@ import 'package:flutter_downloader_example/info.dart';
 import 'package:flutter_downloader_example/insta.dart';
 import 'package:flutter_downloader_example/logic.dart';
 import 'package:flutter_downloader_example/saves.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:permission_handler/permission_handler.dart';
@@ -15,7 +16,12 @@ import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,10 +29,45 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: Colors.white,
             iconTheme: IconThemeData(color: Colors.white)),
         debugShowCheckedModeBanner: false,
-        home: ChangeNotifierProvider.value(
+        home: ChangeNotifierProvider(
           child: DownloadPage(),
-          value: Logic(),
+          create: (_) => Logic(this),
         ));
+  }
+}
+
+class Test extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    Logic logic = Provider.of(context);
+    return Scaffold(
+        body: Center(
+            child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        print('called');
+        if (logic.animation.isCompleted) {
+          logic.animationController.reverse();
+        } else
+          logic.animationController.forward();
+      },
+      child: Container(
+        height: 60,
+        width: 60,
+        decoration: BoxDecoration(
+          color: Colors.green,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: RotationTransition(
+          turns: logic.animation,
+          child: Icon(
+            FontAwesomeIcons.solidArrowAltCircleDown,
+            color: Colors.white,
+            size: 35,
+          ),
+        ),
+      ),
+    )));
   }
 }
 

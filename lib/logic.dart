@@ -10,7 +10,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
 import 'package:flutter_downloader_example/post.dart';
-import 'package:html/dom.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
@@ -19,16 +18,30 @@ typedef DownloadOperations(String id);
 
 class Logic with ChangeNotifier {
   List<Map> buttons;
-
+  var posts = List<Post>();
   ReceivePort _port = ReceivePort();
   num progress = 0;
-  Logic() {
+  Animation<double> animation;
+  AnimationController animationController;
+  Logic(TickerProvider tickerProvider) {
 //    FlutterDownloader.initialize().then((x) {
 //      _bindBackgroundIsolate();
 //      FlutterDownloader.registerCallback(downloadCallback);
 //    });
+
+    animationController = AnimationController(
+        vsync: tickerProvider, duration: Duration(seconds: 2));
+
+    animation = Tween<double>(begin: 0, end: 360 / 360).animate(
+        CurvedAnimation(parent: animationController, curve: Curves.easeInCirc));
     buttons = [
-      {'text': 'تأكيد', 'color': Colors.green, 'onPressed': () {}},
+      {
+        'text': 'تأكيد',
+        'color': Colors.green,
+        'onPressed': () {
+          confirm();
+        }
+      },
       {
         'text': 'لصق',
         'color': Colors.purple,
@@ -46,11 +59,30 @@ class Logic with ChangeNotifier {
     controller.text = data.text;
   }
 
+  void showSnackBar(BuildContext context, String text) {
+    Scaffold.of(context).showSnackBar(SnackBar(
+      content: Text(
+        text,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      ),
+      backgroundColor: Colors.red,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(10))),
+    ));
+  }
+
   var key = GlobalKey<FormState>();
 
-  void confirm() {
+  Future<void> confirm() async {
     var isValid = key.currentState.validate();
-    if (isValid) {}
+    if (isValid) {
+      var post = await getVideoInfo(controller.text);
+      posts.add(post);
+      print(post);
+      print('!!');
+      notifyListeners();
+      print('called');
+    }
   }
 
   void clear() {
@@ -185,7 +217,7 @@ class Logic with ChangeNotifier {
         'Background Isolate Callback: task ($id) is in status ($status) and process ($progress)');
     final SendPort send =
         IsolateNameServer.lookupPortByName('downloader_send_port');
-    send.send([id, status, progress]);
+    send.send({'id': id, 'status': status, 'progress': progress});
 
     print(status.toString() + '!!!!!!!!!!!!!');
   }
@@ -203,14 +235,15 @@ class Logic with ChangeNotifier {
       return;
     }
     _port.listen((dynamic data) {
-      print(data.toString() + '!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-      print('UI Isolate Callback: $data');
-      this.id = data[0];
-      DownloadTaskStatus status = data[1];
-      this.progress = data[2];
       notifyListeners();
-
-      print(status);
+      int index = posts.indexWhere((post) {
+        if (post.taskId == data['id']) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+      posts[index].taskId = data['id'];
     });
   }
 

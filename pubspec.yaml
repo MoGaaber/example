@@ -35,7 +35,7 @@ dependencies:
   flutter_animation_progress_bar: ^1.0.0
   step_progress_indicator: ^0.2.1+4
   cached_network_image: ^2.0.0
-
+  shimmer: ^1.1.0
 
 
 
