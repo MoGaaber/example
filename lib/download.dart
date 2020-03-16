@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animation_progress_bar/flutter_animation_progress_bar.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,19 +23,18 @@ import 'logic.dart';
 
 class DownloadPage extends StatelessWidget {
   GlobalKey scaffoldKey = GlobalKey<ScaffoldState>();
+  String test = 'انا اسمى محمد gaber';
 
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: true);
     print(logic.controller.text);
-    http.get('https://www.instagram.com/p/B9wwwOEJCvy/?__a=1').then((x) {
-      print(jsonDecode(x.body)['graphql']['shortcode_media']
-          ['edge_media_to_caption']['edges'][0]['node']['text']);
-    });
+    List<int> hashtags = [1, 2, 3, 4];
+    var x = hashtags.join(' ');
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
           child: Scaffold(
-        key: scaffoldKey,
         drawer: Drawer(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -365,16 +366,34 @@ class DownloadPage extends StatelessWidget {
                               ],
                             ),
                           ),
+                          Divider()
                         ],
                       )
                     : Column(
                         children: <Widget>[
-                          Container(
+                          Card(
                             child: Column(
                               children: <Widget>[
                                 Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(
+                                      child: SizedBox(
+                                    child: LinearProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.green),
+                                      value: logic.posts[i]
+                                              .downloadCallbackModel?.progress
+                                              ?.toDouble() ??
+                                          0 / 100,
+                                      backgroundColor:
+                                          Colors.purple.withOpacity(0.1),
+                                    ),
+                                  )),
+                                ),
+                                Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 20),
+                                      horizontal: 4, vertical: 0),
                                   child: Row(
                                     textDirection: TextDirection.ltr,
                                     crossAxisAlignment:
@@ -419,32 +438,101 @@ class DownloadPage extends StatelessWidget {
                                       ),
                                       Builder(
                                           builder: (BuildContext context) =>
-                                              InkWell(
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                                onTap: () {
-                                                  logic.startDownload(logic
-                                                      .posts[i].downloadUrl);
-                                                },
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
-                                                  child: Icon(
-                                                    FontAwesomeIcons
-                                                        .solidArrowAltCircleDown,
-                                                    color: Colors.green,
-                                                    size: 35,
-                                                  ),
-                                                ),
-                                              ))
+                                              logic
+                                                          .posts[i]
+                                                          .downloadCallbackModel
+                                                          ?.status ==
+                                                      DownloadTaskStatus.running
+                                                  ? Row(
+                                                      children: <Widget>[
+                                                        IconButton(
+                                                          color: Colors.red,
+                                                          onPressed: () {
+                                                            logic.cancelDownload(
+                                                                logic
+                                                                    .posts[i]
+                                                                    .downloadCallbackModel
+                                                                    .id);
+                                                          },
+                                                          icon: Icon(
+                                                            Icons.close,
+                                                            size: 26,
+                                                          ),
+                                                        ),
+                                                        InkWell(
+                                                          onTap: () {
+                                                            if (logic
+                                                                .playPauseCont
+                                                                .isCompleted) {
+                                                              logic.pauseDownload(
+                                                                  logic
+                                                                      .posts[i]
+                                                                      .downloadCallbackModel
+                                                                      .id);
+
+                                                              logic
+                                                                  .playPauseCont
+                                                                  .reverse();
+                                                            } else if (logic
+                                                                .playPauseCont
+                                                                .isDismissed) {
+                                                              logic
+                                                                  .playPauseCont
+                                                                  .forward();
+                                                              logic.pauseDownload(
+                                                                  logic
+                                                                      .posts[i]
+                                                                      .downloadCallbackModel
+                                                                      .id);
+                                                            }
+                                                          },
+                                                          child: AnimatedIcon(
+                                                              size: 40,
+                                                              color: Colors.red,
+                                                              icon: AnimatedIcons
+                                                                  .pause_play,
+                                                              progress: logic
+                                                                  .playPauseCont),
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : InkWell(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                      onTap: () async {
+                                                        logic.startDownload(
+                                                            logic.posts[i]
+                                                                .downloadUrl,
+                                                            i);
+                                                      },
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Icon(
+                                                          FontAwesomeIcons
+                                                              .solidArrowAltCircleDown,
+                                                          color: Colors.green,
+                                                          size: 35,
+                                                        ),
+                                                      ),
+                                                    ))
                                     ],
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
+//                                    "I started using flutter markdown, however I'd like to justify the content, and I couldn't until nowried using a Center and Alignment but didn't work.            ",
                                     logic.posts[i].title,
-                                    textAlign: TextAlign.center,
+                                    textAlign: TextAlign.justify,
+/*
+                                    textDirection: logic.arabicCharachterRegex
+                                            .hasMatch(logic.posts[i].title)
+                                        ? TextDirection.rtl
+                                        : TextDirection.ltr,
+*/
                                     style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700),
@@ -457,14 +545,14 @@ class DownloadPage extends StatelessWidget {
                                     child: CachedNetworkImage(
                                       placeholder: (context, text) {
                                         return SizedBox(
-                                            height: 200,
+                                            height: 250,
                                             width: 330,
                                             child: Center(
                                                 child:
                                                     CircularProgressIndicator()));
                                       },
                                       imageUrl: logic.posts[i].thumbnail,
-                                      height: 200,
+                                      height: 250,
                                       fit: BoxFit.cover,
                                       width: 330,
                                     ),
@@ -473,19 +561,51 @@ class DownloadPage extends StatelessWidget {
                                 Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 20),
-                                  child: Center(
-                                      child: SizedBox(
-                                    width: (280),
-                                    child: LinearProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.green),
-                                      value: 0.1,
-                                      backgroundColor:
-                                          Colors.purple.withOpacity(0.1),
+                                  child: ButtonTheme(
+                                    height: 60,
+                                    minWidth: 150,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: <Widget>[
+                                        FlatButton.icon(
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(10))),
+                                            colorBrightness: Brightness.dark,
+                                            color: Colors.purple,
+                                            onPressed: () {},
+                                            icon: Icon(
+                                              FontAwesomeIcons.hashtag,
+                                              color: Colors.amber,
+                                            ),
+                                            label: Text(
+                                              'نسخ الهاشتاق',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w700),
+                                            )),
+                                        FlatButton.icon(
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(10))),
+                                            colorBrightness: Brightness.dark,
+                                            color: Colors.purple,
+                                            onPressed: () {},
+                                            icon: Icon(
+                                              FontAwesomeIcons.hashtag,
+                                              color: Colors.amber,
+                                            ),
+                                            label: Text(
+                                              'نسخ المحتوى',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w700),
+                                            )),
+                                      ],
                                     ),
-                                  )),
-                                ),
-                                Divider()
+                                  ),
+                                )
                               ],
                             ),
                           ),

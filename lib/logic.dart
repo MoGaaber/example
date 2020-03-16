@@ -21,13 +21,19 @@ class Logic with ChangeNotifier {
   List<Map> buttons;
   var posts = List<Post>();
   ReceivePort _port = ReceivePort();
+  Animation<double> playPauseAnim;
+  AnimationController playPauseCont;
   num progress = 0;
   Animation<double> animation;
   AnimationController animationController;
+  var arabicCharachterRegex = RegExp(
+      r"[\u0600-\u06ff]|[\u0750-\u077f]|[\ufb50-\ufc3f]|[\ufe70-\ufefc]");
   Logic(TickerProvider tickerProvider) {
     _bindBackgroundIsolate();
 
     FlutterDownloader.registerCallback(downloadCallback);
+    playPauseCont = AnimationController(
+        duration: const Duration(milliseconds: 500), vsync: tickerProvider);
 
     animationController = AnimationController(
         vsync: tickerProvider, duration: Duration(seconds: 2));
@@ -123,10 +129,8 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  Future<String> startDownload(
-    String url,
-  ) async {
-    return await FlutterDownloader.enqueue(
+  Future<void> startDownload(String url, int index) async {
+    posts[index].taskId = await FlutterDownloader.enqueue(
       savedDir: Constants.path,
       fileName: '${Uuid().v1()}.mp4',
       url: url,
@@ -142,9 +146,90 @@ class Logic with ChangeNotifier {
   }
 
   Future<Post> getVideoInfo(String originalUrl) async {
+    if (!originalUrl.endsWith('/')) {
+      originalUrl += '/';
+    }
+    originalUrl += '?__a=1';
+    print(originalUrl);
     var response = await http.get(originalUrl);
-    
-    var htmlDocument = parse(response.body);
+    Map<String, dynamic> responseBody = jsonDecode(response.body);
+    Map<String, dynamic> root = responseBody['graphql']['shortcode_media'];
+    Map<String, dynamic> ownerRoot = root['owner'];
+    var userName = ownerRoot['username'];
+    var profilePic = ownerRoot['profile_pic_url'];
+    var date = root['taken_at_timestamp'];
+    var thumbnail = root['display_url'];
+    var isVideo = root['is_video'];
+    var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
+    var downloadUrl;
+    if (isVideo) {
+      downloadUrl = root['video_url'];
+    } else {
+      downloadUrl = thumbnail;
+    }
+    List<String> hashtags = [];
+
+    RegExp exp = new RegExp(r"(#\w+)");
+    var matches = exp.allMatches(title).toList();
+
+    for (int i = 0; i < matches.length; i++) {
+      hashtags.add(title.substring(matches[i].start, matches[i].end));
+    }
+    hashtags.join(' ');
+    return Post(
+        title: title,
+        date: date.toString(),
+        downloadUrl: downloadUrl,
+        hashtags: 'hashtags',
+        thumbnail: thumbnail,
+        owner: Owner(profilePic: profilePic, userName: userName));
+  }
+
+  static void downloadCallback(
+      String id, DownloadTaskStatus status, int progress) {
+    final SendPort send =
+        IsolateNameServer.lookupPortByName('downloader_send_port');
+    send.send(DownloadCallbackModel(progress, status, id));
+  }
+
+  void _unbindBackgroundIsolate() {
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+  }
+
+  void _bindBackgroundIsolate() {
+    bool isSuccess = IsolateNameServer.registerPortWithName(
+        _port.sendPort, 'downloader_send_port');
+    if (!isSuccess) {
+      print('!!!!!!!!!');
+      _unbindBackgroundIsolate();
+      _bindBackgroundIsolate();
+      return;
+    }
+    _port.listen((dynamic data) {
+      DownloadCallbackModel downloadCallbackModel = data;
+      print(downloadCallbackModel.id.toString() + '!!!!');
+      int index = posts.indexWhere((post) {
+        if (post.taskId == downloadCallbackModel.id) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+      posts[index].downloadCallbackModel = downloadCallbackModel;
+      notifyListeners();
+    });
+  }
+}
+
+class DownloadCallbackModel {
+  int progress;
+  DownloadTaskStatus status;
+  String id;
+
+  DownloadCallbackModel(this.progress, this.status, this.id);
+}
+/*
+    /*  var htmlDocument = parse(response.body);
     var htmlBody = htmlDocument.body;
     var scriptElement =
         htmlBody.querySelector('script[type="text/javascript"]').text;
@@ -201,48 +286,6 @@ class Logic with ChangeNotifier {
     var hashtags = '';
     for (var element in hashtagList) {
       hashtags += '#${element.attributes['content']} ';
-    }
+    }*/
 
-    return Post(
-        title: title,
-        date: date,
-        downloadUrl: downloadLink,
-        hashtags: hashtags,
-        thumbnail: thumbnail,
-        owner: Owner(profilePic: profilePic, userName: userName));
-  }
-
-  static void downloadCallback(
-      String id, DownloadTaskStatus status, int progress) {
-    final SendPort send =
-        IsolateNameServer.lookupPortByName('downloader_send_port');
-    send.send([id, status, progress]);
-  }
-
-  void _unbindBackgroundIsolate() {
-    IsolateNameServer.removePortNameMapping('downloader_send_port');
-  }
-
-  void _bindBackgroundIsolate() {
-    bool isSuccess = IsolateNameServer.registerPortWithName(
-        _port.sendPort, 'downloader_send_port');
-    if (!isSuccess) {
-      _unbindBackgroundIsolate();
-      _bindBackgroundIsolate();
-      return;
-    }
-    _port.listen((dynamic data) {
-/*
-      notifyListeners();
-      int index = posts.indexWhere((post) {
-        if (post.taskId == data['id']) {
-          return true;
-        } else {
-          return false;
-        }
-      });
-      posts[index].taskId = data['id'];
-*/
-    });
-  }
-}
+ */

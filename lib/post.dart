@@ -1,14 +1,17 @@
-class Post {
-  String title, downloadUrl, date, hashtags, taskId,thumbnail;
-  Owner owner;
+import 'package:flutter_downloader_example/logic.dart';
 
-  Post(
-      {this.title,
-      this.downloadUrl,
-      this.date,
-      this.owner,
-      this.hashtags,this.thumbnail,
-      this.taskId});
+class Post {
+  String title, downloadUrl, date, hashtags, taskId, thumbnail;
+  Owner owner;
+  DownloadCallbackModel downloadCallbackModel;
+  Post({
+    this.title,
+    this.downloadUrl,
+    this.date,
+    this.owner,
+    this.hashtags,
+    this.thumbnail,
+  });
   Map<String, dynamic> toJson() {
     return {
       'title': title,
@@ -17,15 +20,17 @@ class Post {
       'hashtags': hashtags,
       'owner': owner.toJson(),
       'thumbnail': thumbnail
-
     };
   }
 }
 
 class Owner {
-  String profilePic, userName ;
+  String profilePic, userName;
 
-  Owner({this.profilePic, this.userName, });
+  Owner({
+    this.profilePic,
+    this.userName,
+  });
 
   Map<String, dynamic> toJson() {
     return {
