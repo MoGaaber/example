@@ -10,6 +10,7 @@ import 'package:flutter_downloader_example/insta.dart';
 import 'package:flutter_downloader_example/logic.dart';
 import 'package:flutter_downloader_example/saves.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:permission_handler/permission_handler.dart';
@@ -32,6 +33,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
+            fontFamily: GoogleFonts.cairo().fontFamily,
             accentColor: Colors.purple,
             scaffoldBackgroundColor: Colors.white,
             iconTheme: IconThemeData(color: Colors.white)),

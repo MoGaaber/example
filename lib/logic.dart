@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
+import 'package:admob_flutter/admob_flutter.dart';
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/constants.dart';
 import 'package:flutter_downloader_example/post.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
@@ -30,6 +33,8 @@ class Logic with ChangeNotifier {
       r"[\u0600-\u06ff]|[\u0750-\u077f]|[\ufb50-\ufc3f]|[\ufe70-\ufefc]");
   Logic(TickerProvider tickerProvider) {
     _bindBackgroundIsolate();
+
+    rewardedVideoAd = RewardedVideoAd.instance;
 
     FlutterDownloader.registerCallback(downloadCallback);
     playPauseCont = AnimationController(
@@ -63,6 +68,42 @@ class Logic with ChangeNotifier {
   Future<void> pasteUrl() async {
     var data = await Clipboard.getData(Clipboard.kTextPlain);
     controller.text = data.text;
+  }
+
+  RewardedVideoAd rewardedVideoAd;
+  Future<void> copy(String text) async {
+//    await rewardedVideoAd.show();
+    await rewardedVideoAd.load(
+      adUnitId: RewardedVideoAd.testAdUnitId,
+      targetingInfo: MobileAdTargetingInfo(),
+    );
+    rewardedVideoAd.show();
+
+    rewardedVideoAd.listener =
+        (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
+      print(event);
+      if (event == RewardedVideoAdEvent.loaded) {
+        rewardedVideoAd.show();
+      } else if (event == RewardedVideoAdEvent.completed ||
+          event == RewardedVideoAdEvent.rewarded) {
+        Clipboard.setData(ClipboardData(text: text));
+      }
+    };
+/*
+    BannerAd myBanner = BannerAd(
+      // Replace the testAdUnitId with an ad unit id from the AdMob dash.
+      // https://developers.google.com/admob/android/test-ads
+      // https://developers.google.com/admob/ios/test-ads
+      adUnitId: BannerAd.testAdUnitId,
+      size: AdSize.smartBanner,
+      listener: (MobileAdEvent event) {
+        print("BannerAd event is $event");
+      },
+    );
+    myBanner
+      ..load()
+      ..show();
+*/
   }
 
   void showSnackBar(BuildContext context, String text) {
@@ -175,14 +216,114 @@ class Logic with ChangeNotifier {
     for (int i = 0; i < matches.length; i++) {
       hashtags.add(title.substring(matches[i].start, matches[i].end));
     }
-    hashtags.join(' ');
     return Post(
         title: title,
         date: date.toString(),
         downloadUrl: downloadUrl,
-        hashtags: 'hashtags',
+        hashtags: hashtags.join(' '),
         thumbnail: thumbnail,
         owner: Owner(profilePic: profilePic, userName: userName));
+  }
+
+  Widget downloadControl(int i) {
+    var status = posts[i].downloadCallbackModel?.status ?? null;
+
+    if (status == DownloadTaskStatus.running ||
+        status == DownloadTaskStatus.paused) {
+      return Row(
+        children: <Widget>[
+          IconButton(
+            color: Colors.red,
+            onPressed: () {
+              //notifyListeners();
+              cancelDownload(posts[i].downloadCallbackModel.id);
+              print(i);
+            },
+            icon: Icon(
+              Icons.close,
+              size: 26,
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              // notifyListeners();
+              print(i);
+
+              if (playPauseCont.isCompleted) {
+                resumeDownload(posts[i].downloadCallbackModel.id);
+                playPauseCont.reverse();
+              } else if (playPauseCont.isDismissed) {
+                playPauseCont.forward();
+                pauseDownload(posts[i].downloadCallbackModel.id);
+              }
+            },
+            child: AnimatedIcon(
+                size: 40,
+                color: Colors.red,
+                icon: AnimatedIcons.pause_play,
+                progress: playPauseCont),
+          ),
+        ],
+      );
+    } else if (status == DownloadTaskStatus.canceled ||
+        status == DownloadTaskStatus.failed ||
+        status == DownloadTaskStatus.undefined ||
+        status == null) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () async {
+          await startDownload(posts[i].downloadUrl, i);
+          notifyListeners();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(
+            FontAwesomeIcons.arrowCircleDown,
+            color: Colors.green,
+            size: 35,
+          ),
+        ),
+      );
+    } else if (status == DownloadTaskStatus.complete) {
+      return PopupMenuButton(
+        enabled: true,
+        icon: Icon(
+          Icons.more_horiz,
+          color: Colors.black,
+        ),
+        itemBuilder: (BuildContext context) => [
+          PopupMenuItem(
+              child: Row(
+            children: <Widget>[
+              Icon(FontAwesomeIcons.share),
+              Text(
+                'المشاركة',
+              )
+            ],
+          )),
+          PopupMenuItem(
+              child: Row(
+            children: <Widget>[
+              Icon(FontAwesomeIcons.folderOpen),
+              Text(
+                'فتح',
+              )
+            ],
+          ))
+        ],
+      );
+    } else if (status == DownloadTaskStatus.enqueued) {
+      return IconButton(
+        color: Colors.red,
+        onPressed: () {
+          cancelDownload(posts[i].downloadCallbackModel.id);
+        },
+        icon: Icon(
+          Icons.close,
+          size: 26,
+        ),
+      );
+    }
   }
 
   static void downloadCallback(
@@ -216,6 +357,7 @@ class Logic with ChangeNotifier {
         }
       });
       posts[index].downloadCallbackModel = downloadCallbackModel;
+      print(downloadCallbackModel.status);
       notifyListeners();
     });
   }

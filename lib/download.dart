@@ -29,8 +29,6 @@ class DownloadPage extends StatelessWidget {
     Logic logic = Provider.of(context, listen: true);
     print(logic.controller.text);
     List<int> hashtags = [1, 2, 3, 4];
-    var x = hashtags.join(' ');
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
@@ -382,10 +380,17 @@ class DownloadPage extends StatelessWidget {
                                     child: LinearProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(
                                           Colors.green),
-                                      value: logic.posts[i]
-                                              .downloadCallbackModel?.progress
-                                              ?.toDouble() ??
-                                          0 / 100,
+                                      value: logic
+                                                  .posts[i]
+                                                  .downloadCallbackModel
+                                                  ?.progress
+                                                  ?.toDouble() ==
+                                              null
+                                          ? 0
+                                          : logic.posts[i].downloadCallbackModel
+                                                  .progress
+                                                  .toDouble() /
+                                              100,
                                       backgroundColor:
                                           Colors.purple.withOpacity(0.1),
                                     ),
@@ -436,88 +441,7 @@ class DownloadPage extends StatelessWidget {
                                       Spacer(
                                         flex: 1,
                                       ),
-                                      Builder(
-                                          builder: (BuildContext context) =>
-                                              logic
-                                                          .posts[i]
-                                                          .downloadCallbackModel
-                                                          ?.status ==
-                                                      DownloadTaskStatus.running
-                                                  ? Row(
-                                                      children: <Widget>[
-                                                        IconButton(
-                                                          color: Colors.red,
-                                                          onPressed: () {
-                                                            logic.cancelDownload(
-                                                                logic
-                                                                    .posts[i]
-                                                                    .downloadCallbackModel
-                                                                    .id);
-                                                          },
-                                                          icon: Icon(
-                                                            Icons.close,
-                                                            size: 26,
-                                                          ),
-                                                        ),
-                                                        InkWell(
-                                                          onTap: () {
-                                                            if (logic
-                                                                .playPauseCont
-                                                                .isCompleted) {
-                                                              logic.pauseDownload(
-                                                                  logic
-                                                                      .posts[i]
-                                                                      .downloadCallbackModel
-                                                                      .id);
-
-                                                              logic
-                                                                  .playPauseCont
-                                                                  .reverse();
-                                                            } else if (logic
-                                                                .playPauseCont
-                                                                .isDismissed) {
-                                                              logic
-                                                                  .playPauseCont
-                                                                  .forward();
-                                                              logic.pauseDownload(
-                                                                  logic
-                                                                      .posts[i]
-                                                                      .downloadCallbackModel
-                                                                      .id);
-                                                            }
-                                                          },
-                                                          child: AnimatedIcon(
-                                                              size: 40,
-                                                              color: Colors.red,
-                                                              icon: AnimatedIcons
-                                                                  .pause_play,
-                                                              progress: logic
-                                                                  .playPauseCont),
-                                                        ),
-                                                      ],
-                                                    )
-                                                  : InkWell(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              20),
-                                                      onTap: () async {
-                                                        logic.startDownload(
-                                                            logic.posts[i]
-                                                                .downloadUrl,
-                                                            i);
-                                                      },
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(8.0),
-                                                        child: Icon(
-                                                          FontAwesomeIcons
-                                                              .solidArrowAltCircleDown,
-                                                          color: Colors.green,
-                                                          size: 35,
-                                                        ),
-                                                      ),
-                                                    ))
+                                      logic.downloadControl(i)
                                     ],
                                   ),
                                 ),
@@ -526,7 +450,7 @@ class DownloadPage extends StatelessWidget {
                                   child: Text(
 //                                    "I started using flutter markdown, however I'd like to justify the content, and I couldn't until nowried using a Center and Alignment but didn't work.            ",
                                     logic.posts[i].title,
-                                    textAlign: TextAlign.justify,
+                                    textAlign: TextAlign.center,
 /*
                                     textDirection: logic.arabicCharachterRegex
                                             .hasMatch(logic.posts[i].title)
@@ -574,7 +498,10 @@ class DownloadPage extends StatelessWidget {
                                                     Radius.circular(10))),
                                             colorBrightness: Brightness.dark,
                                             color: Colors.purple,
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              logic.copy(
+                                                  logic.posts[i].hashtags);
+                                            },
                                             icon: Icon(
                                               FontAwesomeIcons.hashtag,
                                               color: Colors.amber,
@@ -582,7 +509,7 @@ class DownloadPage extends StatelessWidget {
                                             label: Text(
                                               'نسخ الهاشتاق',
                                               style: TextStyle(
-                                                  fontSize: 20,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w700),
                                             )),
                                         FlatButton.icon(
@@ -591,7 +518,9 @@ class DownloadPage extends StatelessWidget {
                                                     Radius.circular(10))),
                                             colorBrightness: Brightness.dark,
                                             color: Colors.purple,
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              logic.copy(logic.posts[i].title);
+                                            },
                                             icon: Icon(
                                               FontAwesomeIcons.hashtag,
                                               color: Colors.amber,
@@ -599,7 +528,7 @@ class DownloadPage extends StatelessWidget {
                                             label: Text(
                                               'نسخ المحتوى',
                                               style: TextStyle(
-                                                  fontSize: 20,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w700),
                                             )),
                                       ],
