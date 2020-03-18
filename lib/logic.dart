@@ -4,9 +4,11 @@ import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:admob_flutter/admob_flutter.dart';
+import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -22,29 +24,25 @@ typedef DownloadOperations(String id);
 
 class Logic with ChangeNotifier {
   List<Map> buttons;
+  int index;
   var posts = List<Post>();
+  TapGestureRecognizer tapGestureRecognizer;
   ReceivePort _port = ReceivePort();
-  Animation<double> playPauseAnim;
-  AnimationController playPauseCont;
   num progress = 0;
-  Animation<double> animation;
-  AnimationController animationController;
-  var arabicCharachterRegex = RegExp(
-      r"[\u0600-\u06ff]|[\u0750-\u077f]|[\ufb50-\ufc3f]|[\ufe70-\ufefc]");
+  int postIndex;
+  void showMore() {
+    this.postIndex = index;
+    posts[index].fullTitle = !posts[index].fullTitle;
+    notifyListeners();
+  }
+
   Logic(TickerProvider tickerProvider) {
     _bindBackgroundIsolate();
-
+    tapGestureRecognizer = TapGestureRecognizer();
+    tapGestureRecognizer.onTap = showMore;
     rewardedVideoAd = RewardedVideoAd.instance;
 
     FlutterDownloader.registerCallback(downloadCallback);
-    playPauseCont = AnimationController(
-        duration: const Duration(milliseconds: 500), vsync: tickerProvider);
-
-    animationController = AnimationController(
-        vsync: tickerProvider, duration: Duration(seconds: 2));
-
-    animation = Tween<double>(begin: 0, end: 360 / 360).animate(
-        CurvedAnimation(parent: animationController, curve: Curves.easeInCirc));
     buttons = [
       {
         'text': 'تأكيد',
@@ -60,25 +58,24 @@ class Logic with ChangeNotifier {
           pasteUrl();
         }
       },
-      {'text': 'إلغاء', 'color': Colors.purple, 'onPressed': () {}}
     ];
   }
   TextEditingController controller = TextEditingController();
 
   Future<void> pasteUrl() async {
     var data = await Clipboard.getData(Clipboard.kTextPlain);
-    controller.text = data.text;
+    if (data?.text == null) {
+    } else {
+      controller.text = data?.text;
+    }
   }
 
   RewardedVideoAd rewardedVideoAd;
   Future<void> copy(String text) async {
-//    await rewardedVideoAd.show();
     await rewardedVideoAd.load(
       adUnitId: RewardedVideoAd.testAdUnitId,
       targetingInfo: MobileAdTargetingInfo(),
     );
-    rewardedVideoAd.show();
-
     rewardedVideoAd.listener =
         (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
       print(event);
@@ -89,21 +86,6 @@ class Logic with ChangeNotifier {
         Clipboard.setData(ClipboardData(text: text));
       }
     };
-/*
-    BannerAd myBanner = BannerAd(
-      // Replace the testAdUnitId with an ad unit id from the AdMob dash.
-      // https://developers.google.com/admob/android/test-ads
-      // https://developers.google.com/admob/ios/test-ads
-      adUnitId: BannerAd.testAdUnitId,
-      size: AdSize.smartBanner,
-      listener: (MobileAdEvent event) {
-        print("BannerAd event is $event");
-      },
-    );
-    myBanner
-      ..load()
-      ..show();
-*/
   }
 
   void showSnackBar(BuildContext context, String text) {
@@ -123,9 +105,18 @@ class Logic with ChangeNotifier {
   Future<void> confirm() async {
     var isValid = key.currentState.validate();
     if (isValid) {
-      posts.add(null);
+      var text = controller.text;
+      var regex = RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
+      var url = regex.stringMatch(text);
+      posts.add(Post(infoStatus: InfoStatus.loading));
       notifyListeners();
-      posts[posts.length - 1] = (await getVideoInfo(controller.text));
+      if (!url.endsWith('/')) {
+        url += '/';
+      }
+      url += '?__a=1';
+      print(url);
+      this.index = posts.length - 1;
+      posts[this.index] = (await getVideoInfo('https://' + url));
       notifyListeners();
     }
   }
@@ -158,24 +149,48 @@ class Logic with ChangeNotifier {
     return false;
   }
 
-  void pauseDownload(String id) async {
-    await FlutterDownloader.pause(taskId: id);
-  }
-
-  void resumeDownload(String id) async {
-    await FlutterDownloader.resume(taskId: id);
-  }
-
   void cancelDownload(String id) async {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  Future<void> startDownload(String url, int index) async {
-    posts[index].taskId = await FlutterDownloader.enqueue(
-      savedDir: Constants.path,
-      fileName: '${Uuid().v1()}.mp4',
-      url: url,
-    );
+  String buttonText(int index) {
+    var post = posts[index];
+    var downloadStatus = post.downloadCallbackModel?.status;
+
+    if (downloadStatus == DownloadTaskStatus.complete) {
+      return 'اكتمل التحميل';
+    } else if (downloadStatus == null) {
+      if (post.downloadIsLocked) {
+        return 'جاري التحميل';
+      } else {
+        return 'ابدأ التحميل';
+      }
+    } else if (downloadStatus == DownloadTaskStatus.canceled) {
+      post.downloadIsLocked = false;
+      return 'تم الغاء التحميل اعده مره اخري';
+    } else if (downloadStatus == DownloadTaskStatus.failed ||
+        downloadStatus == DownloadTaskStatus.undefined) {
+      post.downloadIsLocked = false;
+
+      return 'فشل التحميل اعده مره اخري';
+    } else {
+      return 'انتظر جاري التحميل';
+    }
+  }
+
+  Future<void> startDownload(int index) async {
+    posts[index].downloadIsLocked = true;
+    notifyListeners();
+    if (await DataConnectionChecker().hasConnection) {
+      print('has connect');
+      posts[index].taskId = await FlutterDownloader.enqueue(
+        savedDir: Constants.path,
+        fileName: '${Uuid().v1()}.mp4',
+        url: posts[index].downloadUrl,
+      );
+    } else {
+      print('no connection');
+    }
   }
 
   void openDownload(String id) async {
@@ -186,143 +201,75 @@ class Logic with ChangeNotifier {
     String newTaskId = await FlutterDownloader.retry(taskId: id);
   }
 
-  Future<Post> getVideoInfo(String originalUrl) async {
-    if (!originalUrl.endsWith('/')) {
-      originalUrl += '/';
-    }
-    originalUrl += '?__a=1';
-    print(originalUrl);
-    var response = await http.get(originalUrl);
-    Map<String, dynamic> responseBody = jsonDecode(response.body);
-    Map<String, dynamic> root = responseBody['graphql']['shortcode_media'];
-    Map<String, dynamic> ownerRoot = root['owner'];
-    var userName = ownerRoot['username'];
-    var profilePic = ownerRoot['profile_pic_url'];
-    var date = root['taken_at_timestamp'];
-    var thumbnail = root['display_url'];
-    var isVideo = root['is_video'];
-    var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
-    var downloadUrl;
-    if (isVideo) {
-      downloadUrl = root['video_url'];
+  Future<Post> getVideoInfo(String url) async {
+    var response;
+    if (await DataConnectionChecker().hasConnection) {
+      try {
+        response = await http.get(url);
+        if (response.statusCode == 200) {
+          Map<String, dynamic> responseBody = jsonDecode(response.body);
+          Map<String, dynamic> root =
+              responseBody['graphql']['shortcode_media'];
+          if (root.containsKey('edge_sidecar_to_children')) {
+            var node = root['edge_sidecar_to_children'][0]['node'];
+            if (node['isVideo']) {}
+          } else {}
+          Map<String, dynamic> ownerRoot = root['owner'];
+          var userName = ownerRoot['username'];
+          var profilePic = ownerRoot['profile_pic_url'];
+          var date = root['taken_at_timestamp'];
+          var thumbnail = root['display_url'];
+          var isVideo = root['is_video'];
+          var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
+          var downloadUrl;
+          if (isVideo) {
+            downloadUrl = root['video_url'];
+          } else {
+            downloadUrl = thumbnail;
+          }
+          List<String> hashtags = [];
+
+          RegExp exp = new RegExp(r"(#\w+)");
+          var matches = exp.allMatches(title).toList();
+
+          for (int i = 0; i < matches.length; i++) {
+            hashtags.add(title.substring(matches[i].start, matches[i].end));
+          }
+          return Post(
+              infoStatus: InfoStatus.success,
+              title: title,
+              timeStamp: date,
+              downloadUrl: downloadUrl,
+              hashtags: hashtags.join(' '),
+              thumbnail: thumbnail,
+              owner: Owner(profilePic: profilePic, userName: userName));
+        } else {
+          print('!!!');
+          return Post(infoStatus: InfoStatus.notFound);
+        }
+      } on SocketException {
+        print('socket ex');
+        return Post(infoStatus: InfoStatus.connectionError);
+      }
     } else {
-      downloadUrl = thumbnail;
+      print('hello no network');
+      return Post(infoStatus: InfoStatus.connectionError);
     }
-    List<String> hashtags = [];
-
-    RegExp exp = new RegExp(r"(#\w+)");
-    var matches = exp.allMatches(title).toList();
-
-    for (int i = 0; i < matches.length; i++) {
-      hashtags.add(title.substring(matches[i].start, matches[i].end));
-    }
-    return Post(
-        title: title,
-        date: date.toString(),
-        downloadUrl: downloadUrl,
-        hashtags: hashtags.join(' '),
-        thumbnail: thumbnail,
-        owner: Owner(profilePic: profilePic, userName: userName));
   }
 
   Widget downloadControl(int i) {
-    var status = posts[i].downloadCallbackModel?.status ?? null;
-
-    if (status == DownloadTaskStatus.running ||
-        status == DownloadTaskStatus.paused) {
-      return Row(
-        children: <Widget>[
-          IconButton(
-            color: Colors.red,
-            onPressed: () {
-              //notifyListeners();
-              cancelDownload(posts[i].downloadCallbackModel.id);
-              print(i);
-            },
-            icon: Icon(
-              Icons.close,
-              size: 26,
-            ),
-          ),
-          InkWell(
-            onTap: () {
-              // notifyListeners();
-              print(i);
-
-              if (playPauseCont.isCompleted) {
-                resumeDownload(posts[i].downloadCallbackModel.id);
-                playPauseCont.reverse();
-              } else if (playPauseCont.isDismissed) {
-                playPauseCont.forward();
-                pauseDownload(posts[i].downloadCallbackModel.id);
-              }
-            },
-            child: AnimatedIcon(
-                size: 40,
-                color: Colors.red,
-                icon: AnimatedIcons.pause_play,
-                progress: playPauseCont),
-          ),
-        ],
-      );
-    } else if (status == DownloadTaskStatus.canceled ||
-        status == DownloadTaskStatus.failed ||
-        status == DownloadTaskStatus.undefined ||
-        status == null) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () async {
-          await startDownload(posts[i].downloadUrl, i);
-          notifyListeners();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Icon(
-            FontAwesomeIcons.arrowCircleDown,
-            color: Colors.green,
-            size: 35,
-          ),
-        ),
-      );
-    } else if (status == DownloadTaskStatus.complete) {
+    var post = posts[i];
+    var status = post.downloadCallbackModel?.status ?? null;
+    if (status == DownloadTaskStatus.complete) {
       return PopupMenuButton(
-        enabled: true,
-        icon: Icon(
-          Icons.more_horiz,
           color: Colors.black,
-        ),
-        itemBuilder: (BuildContext context) => [
-          PopupMenuItem(
-              child: Row(
-            children: <Widget>[
-              Icon(FontAwesomeIcons.share),
-              Text(
-                'المشاركة',
-              )
-            ],
-          )),
-          PopupMenuItem(
-              child: Row(
-            children: <Widget>[
-              Icon(FontAwesomeIcons.folderOpen),
-              Text(
-                'فتح',
-              )
-            ],
-          ))
-        ],
-      );
-    } else if (status == DownloadTaskStatus.enqueued) {
-      return IconButton(
-        color: Colors.red,
-        onPressed: () {
-          cancelDownload(posts[i].downloadCallbackModel.id);
-        },
-        icon: Icon(
-          Icons.close,
-          size: 26,
-        ),
-      );
+          icon: Icon(
+            Icons.more_vert,
+            color: Colors.black,
+          ),
+          itemBuilder: (_) => [PopupMenuItem(child: Text('test'))]);
+    } else {
+      return SizedBox.shrink();
     }
   }
 
@@ -341,13 +288,14 @@ class Logic with ChangeNotifier {
     bool isSuccess = IsolateNameServer.registerPortWithName(
         _port.sendPort, 'downloader_send_port');
     if (!isSuccess) {
-      print('!!!!!!!!!');
       _unbindBackgroundIsolate();
       _bindBackgroundIsolate();
       return;
     }
     _port.listen((dynamic data) {
       DownloadCallbackModel downloadCallbackModel = data;
+      print(downloadCallbackModel.status.toString() + 'status !!!');
+      print(downloadCallbackModel.progress.toString() + 'hello');
       print(downloadCallbackModel.id.toString() + '!!!!');
       int index = posts.indexWhere((post) {
         if (post.taskId == downloadCallbackModel.id) {
@@ -363,71 +311,36 @@ class Logic with ChangeNotifier {
   }
 }
 
-class DownloadCallbackModel {
-  int progress;
-  DownloadTaskStatus status;
-  String id;
-
-  DownloadCallbackModel(this.progress, this.status, this.id);
-}
 /*
-    /*  var htmlDocument = parse(response.body);
-    var htmlBody = htmlDocument.body;
-    var scriptElement =
-        htmlBody.querySelector('script[type="text/javascript"]').text;
+  void pauseDownload(String id) async {
+    await FlutterDownloader.pause(taskId: id);
+  }
 
-    var mappedScriptElement = jsonDecode(scriptElement.substring(
-        scriptElement.indexOf('{'), scriptElement.length - 1));
+  void resumeDownload(String id) async {
+    await FlutterDownloader.resume(taskId: id);
+  }
+    BannerAd myBanner = BannerAd(
+      // Replace the testAdUnitId with an ad unit id from the AdMob dash.
+      // https://developers.google.com/admob/android/test-ads
+      // https://developers.google.com/admob/ios/test-ads
+      adUnitId: BannerAd.testAdUnitId,
+      size: AdSize.smartBanner,
+      listener: (MobileAdEvent event) {
+        print("BannerAd event is $event");
+      },
+    );
+    myBanner
+      ..load()
+      ..show();
+          playPauseCont = AnimationController(
+        duration: const Duration(milliseconds: 500), vsync: tickerProvider);
 
-    Map<String, dynamic> scriptElementRoot = mappedScriptElement['entry_data']
-        ['PostPage'][0]['graphql']['shortcode_media'];
+    animationController = AnimationController(
+        vsync: tickerProvider, duration: Duration(seconds: 2));
 
-// get title of video or image
-    String title = htmlDocument
-        .querySelector('meta[property="og:title"]')
-        .attributes['content'];
-
-    title = title.substring(title.indexOf(':') + 1, title.length);
-
-    var date = jsonDecode(htmlDocument
-        .querySelector('script[type="application/ld+json"]')
-        .text)['uploadDate'];
-
-    var owner = scriptElementRoot['owner'];
-
-    var profilePic = owner['profile_pic_url'];
-    var userName = owner['username'];
-    var thumbnail = scriptElementRoot['display_url'];
-
-    // get hashtags and video
-    var type = htmlDocument
-        .querySelector('meta[property="og:type"]')
-        .attributes['content'];
-
-    var propertyHashtagName;
-
-    var downloadLink;
-
-    if (scriptElementRoot.containsKey('video_url')) {
-      downloadLink = scriptElementRoot['video_url'];
-    } else if (scriptElementRoot.containsKey('edge_sidecar_to_children')) {
-      downloadLink = scriptElementRoot['edge_sidecar_to_children']['edges'][0]
-          ['node']['video_url'];
-    } else {
-      downloadLink = thumbnail;
-    }
-
-    if (type == 'video') {
-      propertyHashtagName = 'video:tag';
-    } else {
-      propertyHashtagName = 'instapp:hashtags';
-    }
-    var hashtagList =
-        htmlDocument.querySelectorAll('meta[property="$propertyHashtagName"]');
-
-    var hashtags = '';
-    for (var element in hashtagList) {
-      hashtags += '#${element.attributes['content']} ';
-    }*/
+    animation = Tween<double>(begin: 0, end: 360 / 360).animate(
+        CurvedAnimation(parent: animationController, curve: Curves.easeInCirc));
+  var arabicCharachterRegex = RegExp(
+      r"[\u0600-\u06ff]|[\u0750-\u077f]|[\ufb50-\ufc3f]|[\ufe70-\ufefc]");
 
  */

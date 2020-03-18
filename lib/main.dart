@@ -28,7 +28,28 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
+class _MyAppState extends State<MyApp>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  Future<bool> checkPermission() async {
+    if (Platform.isAndroid) {
+      PermissionStatus permission = await PermissionHandler()
+          .checkPermissionStatus(PermissionGroup.storage);
+      if (permission != PermissionStatus.granted) {
+        Map<PermissionGroup, PermissionStatus> permissions =
+            await PermissionHandler()
+                .requestPermissions([PermissionGroup.storage]);
+        if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    } else {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,41 +63,6 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           child: DownloadPage(),
           create: (_) => Logic(this),
         ));
-  }
-}
-
-class Test extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    Logic logic = Provider.of(context);
-    return Scaffold(
-        body: Center(
-            child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () {
-        print('called');
-        if (logic.animation.isCompleted) {
-          logic.animationController.reverse();
-        } else
-          logic.animationController.forward();
-      },
-      child: Container(
-        height: 60,
-        width: 60,
-        decoration: BoxDecoration(
-          color: Colors.green,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: RotationTransition(
-          turns: logic.animation,
-          child: Icon(
-            FontAwesomeIcons.solidArrowAltCircleDown,
-            color: Colors.white,
-            size: 35,
-          ),
-        ),
-      ),
-    )));
   }
 }
 
