@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:admob_flutter/admob_flutter.dart';
+import 'package:async/async.dart';
 import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/cupertino.dart';
@@ -38,6 +39,11 @@ class Logic with ChangeNotifier {
 
   Logic(TickerProvider tickerProvider) {
     _bindBackgroundIsolate();
+    var cancellableOperation = CancelableOperation.fromFuture(
+      Future.value('future result'),
+      onCancel: () => {debugPrint('onCancel')},
+    );
+
     tapGestureRecognizer = TapGestureRecognizer();
     tapGestureRecognizer.onTap = showMore;
     rewardedVideoAd = RewardedVideoAd.instance;
@@ -114,7 +120,6 @@ class Logic with ChangeNotifier {
         url += '/';
       }
       url += '?__a=1';
-      print(url);
       this.index = posts.length - 1;
       posts[this.index] = (await getVideoInfo('https://' + url));
       notifyListeners();
@@ -201,59 +206,67 @@ class Logic with ChangeNotifier {
     String newTaskId = await FlutterDownloader.retry(taskId: id);
   }
 
+  CancelableOperation<http.Response> cancelableOperation;
   Future<Post> getVideoInfo(String url) async {
-    var response;
-    if (await DataConnectionChecker().hasConnection) {
-      try {
-        response = await http.get(url);
-        if (response.statusCode == 200) {
-          Map<String, dynamic> responseBody = jsonDecode(response.body);
-          Map<String, dynamic> root =
-              responseBody['graphql']['shortcode_media'];
-          if (root.containsKey('edge_sidecar_to_children')) {
-            var node = root['edge_sidecar_to_children'][0]['node'];
-            if (node['isVideo']) {}
-          } else {}
-          Map<String, dynamic> ownerRoot = root['owner'];
-          var userName = ownerRoot['username'];
-          var profilePic = ownerRoot['profile_pic_url'];
-          var date = root['taken_at_timestamp'];
-          var thumbnail = root['display_url'];
-          var isVideo = root['is_video'];
-          var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
-          var downloadUrl;
+    try {
+      cancelableOperation =
+          CancelableOperation.fromFuture(http.get(url), onCancel: () {
+        print('cancel success');
+      });
+      http.Response response = await cancelableOperation.value;
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseBody = jsonDecode(response.body);
+        print(responseBody);
+        Map<String, dynamic> root = responseBody['graphql']['shortcode_media'];
+        Map<String, dynamic> ownerRoot = root['owner'];
+        var userName = ownerRoot['username'];
+        var profilePic = ownerRoot['profile_pic_url'];
+        var date = root['taken_at_timestamp'];
+        var thumbnail = root['display_url'];
+        String downloadUrl;
+        bool isVideo;
+        if (root.containsKey('edge_sidecar_to_children')) {
+          var node = root['edge_sidecar_to_children']['edges'][0]['node'];
+          isVideo = node['is_video'];
+          if (isVideo) {
+            downloadUrl = node['video_url'];
+          } else {
+            downloadUrl = thumbnail;
+          }
+        } else {
+          isVideo = root['is_video'];
           if (isVideo) {
             downloadUrl = root['video_url'];
           } else {
             downloadUrl = thumbnail;
           }
-          List<String> hashtags = [];
-
-          RegExp exp = new RegExp(r"(#\w+)");
-          var matches = exp.allMatches(title).toList();
-
-          for (int i = 0; i < matches.length; i++) {
-            hashtags.add(title.substring(matches[i].start, matches[i].end));
-          }
-          return Post(
-              infoStatus: InfoStatus.success,
-              title: title,
-              timeStamp: date,
-              downloadUrl: downloadUrl,
-              hashtags: hashtags.join(' '),
-              thumbnail: thumbnail,
-              owner: Owner(profilePic: profilePic, userName: userName));
-        } else {
-          print('!!!');
-          return Post(infoStatus: InfoStatus.notFound);
         }
-      } on SocketException {
-        print('socket ex');
-        return Post(infoStatus: InfoStatus.connectionError);
+
+        var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
+        List<String> hashtags = [];
+
+        RegExp exp = new RegExp(r"(#\w+)");
+        var matches = exp.allMatches(title).toList();
+
+        for (int i = 0; i < matches.length; i++) {
+          hashtags.add(title.substring(matches[i].start, matches[i].end));
+        }
+        return Post(
+            infoStatus: InfoStatus.success,
+            title: title,
+            timeStamp: date,
+            downloadUrl: downloadUrl,
+            hashtags: hashtags.join(' '),
+            thumbnail: thumbnail,
+            owner: Owner(profilePic: profilePic, userName: userName));
+      } else {
+        return Post(infoStatus: InfoStatus.notFound);
       }
-    } else {
-      print('hello no network');
+    } on SocketException {
       return Post(infoStatus: InfoStatus.connectionError);
+    } catch (e) {
+      return Post(infoStatus: InfoStatus.notFound);
     }
   }
 

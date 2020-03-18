@@ -27,6 +27,11 @@ class DownloadPage extends StatelessWidget {
 
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: true);
+//    Clipboard.setData(
+//        ClipboardData(text: 'https://www.instagram.com/p/B9cGPcJl-Qp/'));
+//    (Clipboard.getData('text/plain').then((x) {
+//      print(x.text);
+//    }));
     var size = MediaQuery.of(context).size;
     Screen screen = Screen(size: size);
     var height = screen.height;
@@ -382,9 +387,32 @@ class DownloadPage extends StatelessWidget {
                                             Spacer(
                                               flex: 1,
                                             ),
-                                            IconButton(
-                                                icon: Icon(Icons.close),
-                                                onPressed: () {})
+                                            Padding(
+                                              padding:
+                                                  EdgeInsets.only(right: 2),
+                                              child: InkWell(
+                                                onTap: () {
+                                                  logic.cancelableOperation
+                                                      .cancel()
+                                                      .then((x) {
+                                                    logic.posts.removeAt(i);
+                                                    logic.notifyListeners();
+                                                  });
+                                                },
+                                                child: SizedBox(
+                                                  height: 30,
+                                                  width: 30,
+                                                  child: Material(
+                                                    child: Icon(
+                                                      Icons.close,
+                                                      color: Colors.white,
+                                                    ),
+                                                    color: Colors.red,
+                                                    type: MaterialType.circle,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
