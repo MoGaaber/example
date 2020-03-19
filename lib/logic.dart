@@ -13,12 +13,17 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_downloader_example/button_State.dart';
 import 'package:flutter_downloader_example/constants.dart';
 import 'package:flutter_downloader_example/post.dart';
+import 'package:flutter_downloader_example/screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'package:progress_dialog/progress_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 typedef DownloadOperations(String id);
@@ -26,102 +31,228 @@ typedef DownloadOperations(String id);
 class Logic with ChangeNotifier {
   List<Map> buttons;
   int index;
+  RegExp instagramUrlRegex;
   var posts = List<Post>();
   TapGestureRecognizer tapGestureRecognizer;
   ReceivePort _port = ReceivePort();
   num progress = 0;
   int postIndex;
-  void showMore() {
+  GlobalKey<ScaffoldState> globalKey = GlobalKey();
+  Screen screen;
+  void showMore(int index) {
     this.postIndex = index;
     posts[index].fullTitle = !posts[index].fullTitle;
     notifyListeners();
   }
 
-  Logic(TickerProvider tickerProvider) {
+  ProgressDialog progressDialog;
+
+  Logic(TickerProvider tickerProvider, BuildContext context) {
     _bindBackgroundIsolate();
-    var cancellableOperation = CancelableOperation.fromFuture(
-      Future.value('future result'),
-      onCancel: () => {debugPrint('onCancel')},
-    );
-
-    tapGestureRecognizer = TapGestureRecognizer();
-    tapGestureRecognizer.onTap = showMore;
-    rewardedVideoAd = RewardedVideoAd.instance;
-
     FlutterDownloader.registerCallback(downloadCallback);
-    buttons = [
-      {
-        'text': 'تأكيد',
-        'color': Colors.green,
-        'onPressed': () {
-          confirm();
-        }
-      },
-      {
-        'text': 'لصق',
-        'color': Colors.purple,
-        'onPressed': () {
-          pasteUrl();
-        }
-      },
-    ];
+    instagramUrlRegex =
+        RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
+    progressDialog = new ProgressDialog(
+      context,
+      showLogs: true,
+      isDismissible: false,
+      type: ProgressDialogType.Normal,
+    );
+    rewardedVideoAd = RewardedVideoAd.instance;
   }
+
   TextEditingController controller = TextEditingController();
 
-  Future<void> pasteUrl() async {
+  Future<void> pasteUrl(BuildContext context) async {
     var data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text == null) {
+    if (data.text == null || data.text.isEmpty) {
+      showSnackBar(context, 'لا يوجد اي نص فى الحافظة', false);
     } else {
       controller.text = data?.text;
+      textFieldKey.currentState.validate();
+    }
+  }
+
+  String textFieldValidator(BuildContext context, String text) {
+    if (text.isEmpty) {
+      showSnackBar(context, 'لم يتم ادخال الرابط', false);
+      return '';
+    }
+    if (instagramUrlRegex.allMatches(text).toList().length != 1) {
+      showSnackBar(context, 'الرابط المدخل غير صحيح', false);
+      return '';
+    } else {
+      return null;
     }
   }
 
   RewardedVideoAd rewardedVideoAd;
-  Future<void> copy(String text) async {
+  void showAd() async {
+    rewardedVideoAd.listener =
+        (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
+      if (event == RewardedVideoAdEvent.loaded) {
+        progressDialog.dismiss();
+        rewardedVideoAd.show();
+      }
+    };
+
     await rewardedVideoAd.load(
       adUnitId: RewardedVideoAd.testAdUnitId,
       targetingInfo: MobileAdTargetingInfo(),
     );
-    rewardedVideoAd.listener =
-        (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
+  }
+
+  bool isFirstTime = true;
+  Future<void> testAd() async {
+    if (isFirstTime) {
+      await rewardedVideoAd.load(
+          adUnitId: RewardedVideoAd.testAdUnitId,
+          targetingInfo: MobileAdTargetingInfo());
+    } else {
+      await rewardedVideoAd.show();
+    }
+    rewardedVideoAd.listener = (RewardedVideoAdEvent event,
+        {String rewardType, int rewardAmount}) async {
       print(event);
-      if (event == RewardedVideoAdEvent.loaded) {
+      if (event == RewardedVideoAdEvent.started) {
+        await rewardedVideoAd.load(
+            adUnitId: RewardedVideoAd.testAdUnitId,
+            targetingInfo: MobileAdTargetingInfo());
+      } else if (event == RewardedVideoAdEvent.loaded && isFirstTime) {
+        isFirstTime = false;
+
         rewardedVideoAd.show();
-      } else if (event == RewardedVideoAdEvent.completed ||
-          event == RewardedVideoAdEvent.rewarded) {
-        Clipboard.setData(ClipboardData(text: text));
       }
     };
   }
 
-  void showSnackBar(BuildContext context, String text) {
-    Scaffold.of(context).showSnackBar(SnackBar(
+  bool dontShowAgain = false;
+  int status = 0;
+  Future<void> copy(BuildContext context, String text) async {
+    SharedPreferences sharedPref = await SharedPreferences.getInstance();
+
+    rewardedVideoAd.listener = (RewardedVideoAdEvent event,
+        {String rewardType, int rewardAmount}) async {
+      if (event == RewardedVideoAdEvent.loaded) {
+        await progressDialog.hide();
+        rewardedVideoAd.show();
+      } else if (event == RewardedVideoAdEvent.completed ||
+          event == RewardedVideoAdEvent.rewarded) {
+        await Clipboard.setData(ClipboardData(text: text));
+        showSnackBar(context, 'تم النسخ بنجاح', true);
+      } else if (event == RewardedVideoAdEvent.failedToLoad) {
+        await rewardedVideoAd.load(
+            adUnitId: RewardedVideoAd.testAdUnitId,
+            targetingInfo: MobileAdTargetingInfo());
+      }
+    };
+    if (sharedPref.getBool('dontShowAgain')) {
+      showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+                titleTextStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                actions: <Widget>[
+                  FlatButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        showSnackBar(context,
+                            'يجب مشاهده الاعلان اولا كى تستطيع النسخ', false);
+                      },
+                      child: Text('لا أوافق')),
+                  FlatButton(
+                      onPressed: () async {
+                        if (this.dontShowAgain) {
+                          await progressDialog.show();
+                          await sharedPref.setBool('dontShowAgain', true);
+                          await rewardedVideoAd.load(
+                              adUnitId: RewardedVideoAd.testAdUnitId,
+                              targetingInfo: MobileAdTargetingInfo());
+                        }
+                      },
+                      child: Text('نعم اوافق')),
+                ],
+                title: Center(
+                    child: Text(
+                  'إخطار',
+                  style: TextStyle(color: Colors.black),
+                )),
+                content: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      'هل توافق على مشاهده اعلان فى كل مره قبل عمليه النسخ ؟',
+                      textDirection: TextDirection.rtl,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        Text(
+                          'لا أريد رؤيه هذا مجددا',
+                          style: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500),
+                        ),
+                        Checkbox(
+                          value: this.dontShowAgain,
+                          onChanged: (bool value) {
+                            this.dontShowAgain = value;
+                            notifyListeners();
+                          },
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ));
+    } else {
+      await progressDialog.show();
+      await rewardedVideoAd.load(
+          adUnitId: RewardedVideoAd.testAdUnitId,
+          targetingInfo: MobileAdTargetingInfo());
+    }
+  }
+
+  void showSnackBar(BuildContext context, String text, bool success) {
+    globalKey.currentState.showSnackBar(SnackBar(
       content: Text(
         text,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        style: GoogleFonts.cairo(
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      backgroundColor: Colors.red,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(10))),
+      backgroundColor: success ? Colors.green : Colors.red,
     ));
   }
 
-  var key = GlobalKey<FormState>();
+  var textFieldKey = GlobalKey<FormState>();
+  CancelableOperation<Post> operation;
 
-  Future<void> confirm() async {
-    var isValid = key.currentState.validate();
+  Future<void> confirm(BuildContext context) async {
+    var isValid = textFieldKey.currentState.validate();
     if (isValid) {
       var text = controller.text;
       var regex = RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
       var url = regex.stringMatch(text);
-      posts.add(Post(infoStatus: InfoStatus.loading));
-      notifyListeners();
       if (!url.endsWith('/')) {
         url += '/';
       }
-      url += '?__a=1';
-      this.index = posts.length - 1;
-      posts[this.index] = (await getVideoInfo('https://' + url));
+      posts.add(Post(infoStatus: InfoStatus.loading, url: url));
+      int index = posts.length - 1;
+
+      notifyListeners();
+
+      posts[index] = await getVideoInfo(context, 'https://' + url);
+      if (posts[index] == null) {
+        posts.removeAt(index);
+      }
+
       notifyListeners();
     }
   }
@@ -158,44 +289,44 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  String buttonText(int index) {
+  ButtonState buttonState(int index) {
     var post = posts[index];
     var downloadStatus = post.downloadCallbackModel?.status;
-
     if (downloadStatus == DownloadTaskStatus.complete) {
-      return 'اكتمل التحميل';
+      return ButtonState('اكتمل التحميل افتح الآن', locked: false);
     } else if (downloadStatus == null) {
       if (post.downloadIsLocked) {
-        return 'جاري التحميل';
+        return ButtonState('فى انتظار شبكه الانترنت');
       } else {
-        return 'ابدأ التحميل';
+        return ButtonState('ابدأ التحميل', locked: false);
       }
     } else if (downloadStatus == DownloadTaskStatus.canceled) {
-      post.downloadIsLocked = false;
-      return 'تم الغاء التحميل اعده مره اخري';
+      return ButtonState('تم الغاء التحميل اعده مره اخري', locked: false);
     } else if (downloadStatus == DownloadTaskStatus.failed ||
         downloadStatus == DownloadTaskStatus.undefined) {
-      post.downloadIsLocked = false;
-
-      return 'فشل التحميل اعده مره اخري';
+      return ButtonState('فشل التحميل اعده مره اخري', locked: false);
     } else {
-      return 'انتظر جاري التحميل';
+      return ButtonState('انتظر جاري التحميل');
     }
   }
 
-  Future<void> startDownload(int index) async {
-    posts[index].downloadIsLocked = true;
-    notifyListeners();
+  Future<void> startDownload(BuildContext context, int index) async {
+    await this.progressDialog.show();
     if (await DataConnectionChecker().hasConnection) {
-      print('has connect');
+      posts[index].downloadIsLocked = true;
+
+      notifyListeners();
+
       posts[index].taskId = await FlutterDownloader.enqueue(
         savedDir: Constants.path,
-        fileName: '${Uuid().v1()}.mp4',
+        fileName: '${Uuid().v1()}',
         url: posts[index].downloadUrl,
       );
     } else {
-      print('no connection');
+      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
+      this.progressDialog.dismiss();
     }
+    progressDialog.dismiss();
   }
 
   void openDownload(String id) async {
@@ -206,18 +337,50 @@ class Logic with ChangeNotifier {
     String newTaskId = await FlutterDownloader.retry(taskId: id);
   }
 
-  CancelableOperation<http.Response> cancelableOperation;
-  Future<Post> getVideoInfo(String url) async {
-    try {
-      cancelableOperation =
-          CancelableOperation.fromFuture(http.get(url), onCancel: () {
-        print('cancel success');
-      });
-      http.Response response = await cancelableOperation.value;
+  CancelableOperation<List<http.Response>> cancelableOperation;
 
-      if (response.statusCode == 200) {
-        Map<String, dynamic> responseBody = jsonDecode(response.body);
-        print(responseBody);
+  Future<Post> getVideoInfo(BuildContext context, String url) async {
+    cancelableOperation = CancelableOperation.fromFuture(
+        Future.wait([http.get(url + '?__a=1'), http.get(url)]), onCancel: () {
+      showSnackBar(context, 'تم ايقاف عرض المنشور بنجاح', true);
+    });
+
+    List<http.Response> responses;
+    try {
+      responses = await cancelableOperation.value;
+    } on SocketException {
+      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
+
+      return Post(infoStatus: InfoStatus.connectionError, url: url);
+    } catch (e) {
+      print(e.toString());
+      showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
+
+      return null;
+    }
+    var apiResponse = responses[0];
+    var htmlResponse = responses[1];
+    if (apiResponse.statusCode == 200 && htmlResponse.statusCode == 200) {
+      try {
+        var htmlDocument = parse(htmlResponse.body);
+        var type = htmlDocument
+            .querySelector('meta[property="og:type"]')
+            .attributes['content'];
+        String propertyHashtagName;
+        if (type == 'video') {
+          propertyHashtagName = 'video:tag';
+        } else {
+          propertyHashtagName = 'instapp:hashtags';
+        }
+        String hashtags = '';
+        var hashtagList = htmlDocument
+            .querySelectorAll('meta[property="$propertyHashtagName"]');
+        if (hashtagList.isNotEmpty) {
+          for (var hashtag in hashtagList) {
+            hashtags += '#${hashtag.attributes['content']} ';
+          }
+        }
+        Map<String, dynamic> responseBody = jsonDecode(apiResponse.body);
         Map<String, dynamic> root = responseBody['graphql']['shortcode_media'];
         Map<String, dynamic> ownerRoot = root['owner'];
         var userName = ownerRoot['username'];
@@ -242,31 +405,32 @@ class Logic with ChangeNotifier {
             downloadUrl = thumbnail;
           }
         }
-
-        var title = root['edge_media_to_caption']['edges'][0]['node']['text'];
-        List<String> hashtags = [];
-
-        RegExp exp = new RegExp(r"(#\w+)");
-        var matches = exp.allMatches(title).toList();
-
-        for (int i = 0; i < matches.length; i++) {
-          hashtags.add(title.substring(matches[i].start, matches[i].end));
+        String title;
+        List titleEdges = root['edge_media_to_caption']['edges'];
+        if (titleEdges.isEmpty) {
+          title = '';
+        } else {
+          title = titleEdges[0]['node']['text'];
         }
         return Post(
             infoStatus: InfoStatus.success,
             title: title,
             timeStamp: date,
             downloadUrl: downloadUrl,
-            hashtags: hashtags.join(' '),
+            hashtags: hashtags,
             thumbnail: thumbnail,
             owner: Owner(profilePic: profilePic, userName: userName));
-      } else {
-        return Post(infoStatus: InfoStatus.notFound);
+      } catch (e) {
+        print(e.toString() + '!');
+
+        showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
       }
-    } on SocketException {
-      return Post(infoStatus: InfoStatus.connectionError);
-    } catch (e) {
-      return Post(infoStatus: InfoStatus.notFound);
+    } else {
+      showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
+
+      print('!!!');
+
+      return null;
     }
   }
 
@@ -307,9 +471,6 @@ class Logic with ChangeNotifier {
     }
     _port.listen((dynamic data) {
       DownloadCallbackModel downloadCallbackModel = data;
-      print(downloadCallbackModel.status.toString() + 'status !!!');
-      print(downloadCallbackModel.progress.toString() + 'hello');
-      print(downloadCallbackModel.id.toString() + '!!!!');
       int index = posts.indexWhere((post) {
         if (post.taskId == downloadCallbackModel.id) {
           return true;
@@ -318,7 +479,7 @@ class Logic with ChangeNotifier {
         }
       });
       posts[index].downloadCallbackModel = downloadCallbackModel;
-      print(downloadCallbackModel.status);
+
       notifyListeners();
     });
   }

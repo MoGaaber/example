@@ -61,7 +61,7 @@ class _MyAppState extends State<MyApp>
         debugShowCheckedModeBanner: false,
         home: ChangeNotifierProvider(
           child: DownloadPage(),
-          create: (_) => Logic(this),
+          create: (ctx) => Logic(this, ctx),
         ));
   }
 }

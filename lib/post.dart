@@ -1,10 +1,11 @@
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/logic.dart';
 
-enum InfoStatus { loading, connectionError, success, notFound }
+enum InfoStatus { loading, connectionError, success }
 
 class Post {
-  String title, downloadUrl, hashtags, taskId, thumbnail;
+  String title, downloadUrl, hashtags, taskId, thumbnail, url;
+
   int timeStamp;
   bool fullTitle = false;
   bool downloadIsLocked = false;
@@ -13,6 +14,7 @@ class Post {
   InfoStatus infoStatus;
   DownloadCallbackModel downloadCallbackModel;
   Post({
+    this.url,
     this.infoStatus,
     this.title,
     this.downloadUrl,
@@ -25,9 +27,7 @@ class Post {
   DateTime get date => DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000);
   String get firstPart => title.substring(0, (title.length - 1) ~/ 2);
   String get getTitle {
-    if (title.length == 0) {
-      return '';
-    } else if (title.length <= 40) {
+    if (title.length <= 40) {
       return title;
     } else {
       return fullTitle ? title : firstPart;

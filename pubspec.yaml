@@ -41,6 +41,9 @@ dependencies:
   share_extend: ^1.1.1
   data_connection_checker: ^0.3.4
   async: ^2.4.1
+  progress_dialog: ^1.2.1
+  ndialog: ^2.0.2+1
+
 
 
 
