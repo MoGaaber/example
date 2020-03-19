@@ -129,11 +129,15 @@ class Logic with ChangeNotifier {
     };
   }
 
-  bool dontShowAgain = false;
+  Future<bool> loadRewardedVideoAd() async {
+    return rewardedVideoAd.load(
+        adUnitId: RewardedVideoAd.testAdUnitId,
+        targetingInfo: MobileAdTargetingInfo());
+  }
+
+  bool dontShowAgainCheckBox = true;
   int status = 0;
   Future<void> copy(BuildContext context, String text) async {
-    SharedPreferences sharedPref = await SharedPreferences.getInstance();
-
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
         {String rewardType, int rewardAmount}) async {
       if (event == RewardedVideoAdEvent.loaded) {
@@ -144,15 +148,31 @@ class Logic with ChangeNotifier {
         await Clipboard.setData(ClipboardData(text: text));
         showSnackBar(context, 'تم النسخ بنجاح', true);
       } else if (event == RewardedVideoAdEvent.failedToLoad) {
-        await rewardedVideoAd.load(
-            adUnitId: RewardedVideoAd.testAdUnitId,
-            targetingInfo: MobileAdTargetingInfo());
+        await loadRewardedVideoAd();
       }
     };
+    await progressDialog.show();
+
+    SharedPreferences sharedPref = await SharedPreferences.getInstance();
+    if (sharedPref.getBool('dontShowAgain') == null) {
+      await sharedPref.setBool('dontShowAgain', false);
+    }
+
     if (sharedPref.getBool('dontShowAgain')) {
-      showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
+      await loadRewardedVideoAd();
+    } else {
+      await progressDialog.hide();
+      showWarningDialog(context, sharedPref);
+    }
+  }
+
+  void showWarningDialog(BuildContext context, SharedPreferences sharedPref) {
+    showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) =>
+                  AlertDialog(
                 titleTextStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(10))),
@@ -166,13 +186,16 @@ class Logic with ChangeNotifier {
                       child: Text('لا أوافق')),
                   FlatButton(
                       onPressed: () async {
-                        if (this.dontShowAgain) {
-                          await progressDialog.show();
+                        Navigator.pop(context);
+                        await progressDialog.show();
+
+                        if (this.dontShowAgainCheckBox) {
                           await sharedPref.setBool('dontShowAgain', true);
-                          await rewardedVideoAd.load(
-                              adUnitId: RewardedVideoAd.testAdUnitId,
-                              targetingInfo: MobileAdTargetingInfo());
                         }
+                        await rewardedVideoAd.load(
+                            adUnitId: RewardedVideoAd.testAdUnitId,
+                            targetingInfo: MobileAdTargetingInfo());
+                        progressDialog.dismiss();
                       },
                       child: Text('نعم اوافق')),
                 ],
@@ -203,23 +226,19 @@ class Logic with ChangeNotifier {
                               fontWeight: FontWeight.w500),
                         ),
                         Checkbox(
-                          value: this.dontShowAgain,
+                          value: this.dontShowAgainCheckBox,
                           onChanged: (bool value) {
-                            this.dontShowAgain = value;
-                            notifyListeners();
+                            setState(() {
+                              this.dontShowAgainCheckBox = value;
+                            });
                           },
                         ),
                       ],
                     )
                   ],
                 ),
-              ));
-    } else {
-      await progressDialog.show();
-      await rewardedVideoAd.load(
-          adUnitId: RewardedVideoAd.testAdUnitId,
-          targetingInfo: MobileAdTargetingInfo());
-    }
+              ),
+            ));
   }
 
   void showSnackBar(BuildContext context, String text, bool success) {
@@ -248,14 +267,11 @@ class Logic with ChangeNotifier {
       }
       posts.add(Post(infoStatus: InfoStatus.loading, url: url));
       int index = posts.length - 1;
-
       notifyListeners();
-
       posts[index] = await getVideoInfo(context, 'https://' + url);
       if (posts[index] == null) {
         posts.removeAt(index);
       }
-
       notifyListeners();
     }
   }
@@ -353,10 +369,8 @@ class Logic with ChangeNotifier {
       responses = await cancelableOperation.value;
     } on SocketException {
       showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
-
       return Post(infoStatus: InfoStatus.connectionError, url: url);
     } catch (e) {
-      print(e.toString());
       showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
 
       return null;
@@ -430,8 +444,6 @@ class Logic with ChangeNotifier {
       }
     } else {
       showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
-
-      print('!!!');
 
       return null;
     }

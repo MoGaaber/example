@@ -32,7 +32,6 @@ class DownloadPage extends StatelessWidget {
     var height = screen.height;
     var width = screen.width;
     var aspectRatio = screen.aspectRatio;
-
     return Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(

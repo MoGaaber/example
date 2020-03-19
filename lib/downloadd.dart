@@ -39,107 +39,102 @@ class Download extends StatelessWidget {
           ScrollConfiguration(
               behavior: ScrollBehavior(),
               child: ListView(
-                padding: EdgeInsets.only(bottom: screen.convert(50, height)),
+                padding: EdgeInsets.only(
+                    bottom: screen.convert(50, height), top: 30),
                 children: <Widget>[
-                  Container(
-                    color: Colors.transparent,
-                    padding: EdgeInsets.symmetric(
-                      vertical: screen.convert(40, height),
-                      horizontal: screen.convert(10, width),
-                    ),
-                    child: Column(
-                      children: <Widget>[
-                        Center(
-                          child: Form(
-                            key: logic.textFieldKey,
-                            child: Stack(
-                              children: <Widget>[
-                                TextFormField(
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                  controller: logic.controller,
-                                  validator: (text) =>
-                                      logic.textFieldValidator(context, text),
-                                  decoration: InputDecoration(
-                                      fillColor: Colors.white,
-                                      filled: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                          vertical: 20, horizontal: 20),
-                                      hintStyle: TextStyle(
-                                          fontWeight: FontWeight.w200,
-                                          color: Colors.black.withOpacity(0.2)),
-                                      helperText: '',
-                                      hintText: 'instagram.com/dummy/dummy',
-                                      errorStyle: TextStyle(
-                                          fontWeight: FontWeight.w700),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(5)),
-                                        borderSide: BorderSide(
-                                          width: screen.convert(3, width),
-                                          color: Colors.red,
-                                        ),
+                  Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Form(
+                          key: logic.textFieldKey,
+                          child: Stack(
+                            children: <Widget>[
+                              TextFormField(
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                                controller: logic.controller,
+                                validator: (text) =>
+                                    logic.textFieldValidator(context, text),
+                                decoration: InputDecoration(
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                    contentPadding: EdgeInsets.all(18),
+                                    hintStyle: TextStyle(
+                                        fontWeight: FontWeight.w200,
+                                        color: Colors.black.withOpacity(0.2)),
+                                    helperText: '',
+                                    hintText: 'instagram.com/dummy/dummy',
+                                    errorStyle:
+                                        TextStyle(fontWeight: FontWeight.w700),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(10)),
+                                      borderSide: BorderSide(
+                                        width: screen.convert(1, width),
+                                        color: Colors.red,
                                       ),
-                                      prefixIcon: Icon(
-                                        Icons.link,
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.link,
+                                      color: Colors.purple,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(10)),
+                                      borderSide: BorderSide(
+                                        width: screen.convert(1.8, width),
                                         color: Colors.purple,
                                       ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(10)),
-                                        borderSide: BorderSide(
-                                          width: screen.convert(2, width),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(10)),
+                                      borderSide: BorderSide(
                                           color: Colors.purple,
+                                          width: screen.convert(1, width)),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(10)),
+                                      borderSide: BorderSide(
+                                          color: Colors.purple,
+                                          width: screen.convert(1, width)),
+                                    ),
+                                    labelStyle:
+                                        GoogleFonts.cairo(color: Colors.green),
+                                    labelText: 'الصق الرابط هنا'),
+                              ),
+                              Positioned.fill(
+                                child: Align(
+                                  alignment: Alignment(-0.95, -0.43),
+                                  child: InkWell(
+                                    onTap: () {
+                                      print('!!');
+                                      logic.clear();
+                                    },
+                                    child: Container(
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.clear,
+                                          size: screen.convert(15, aspectRatio),
                                         ),
                                       ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(10)),
-                                        borderSide: BorderSide(
-                                            color: Colors.purple,
-                                            width: screen.convert(2, width)),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(10)),
-                                        borderSide: BorderSide(
-                                            color:
-                                                Colors.purple.withOpacity(0.5),
-                                            width: screen.convert(2, width)),
-                                      ),
-                                      labelStyle:
-                                          GoogleFonts.cairo(color: Colors.pink),
-                                      labelText: 'الصق الرابط هنا'),
-                                ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment(-0.95, -0.40),
-                                    child: InkWell(
-                                      onTap: () {
-                                        print('!!');
-                                        logic.clear();
-                                      },
-                                      child: Container(
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.clear,
-                                            size:
-                                                screen.convert(15, aspectRatio),
-                                          ),
-                                        ),
-                                        width: screen.convert(25, width),
-                                        height: screen.convert(25, width),
-                                        decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle),
-                                      ),
+                                      width: screen.convert(25, width),
+                                      height: screen.convert(25, width),
+                                      decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                        ButtonTheme(
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 50),
+                        child: ButtonTheme(
                           height: screen.convert(60, height),
                           minWidth: screen.convert(150, width),
                           child: Row(
@@ -154,13 +149,12 @@ class Download extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  Divider(
-                    indent: screen.convert(30, width),
-                    endIndent: screen.convert(30, width),
-                    color: Colors.black.withOpacity(0.2),
+                      ),
+                      Divider(
+                        height: 10,
+                        color: Colors.black.withOpacity(0.2),
+                      ),
+                    ],
                   ),
                   for (int i = 0; i < logic.posts.length; i++)
                     if (logic.posts[i].infoStatus == InfoStatus.loading)
@@ -409,37 +403,66 @@ class Download extends StatelessWidget {
                     else
                       Column(
                         children: <Widget>[
-                          Container(
-                              height: screen.convert(300, height),
-                              color: Colors.grey.withOpacity(0.2),
-                              child: Center(
-                                  child: Material(
-                                type: MaterialType.circle,
-                                color: Colors.green,
-                                child: InkWell(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(50)),
-                                  onTap: () async {
-                                    var url = logic.posts[i].url;
-                                    logic.posts[i] = Post(
-                                      infoStatus: InfoStatus.loading,
-                                    );
-                                    logic.notifyListeners();
+                          Stack(
+                            children: <Widget>[
+                              Container(
+                                  margin: EdgeInsets.all(10),
+                                  height: screen.convert(300, height),
+                                  color: Colors.grey.withOpacity(0.2),
+                                  child: Center(
+                                      child: Material(
+                                    type: MaterialType.circle,
+                                    color: Colors.green,
+                                    child: InkWell(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(50)),
+                                      onTap: () async {
+                                        var url = logic.posts[i].url;
+                                        logic.posts[i] = Post(
+                                          infoStatus: InfoStatus.loading,
+                                        );
+                                        logic.notifyListeners();
 
-                                    logic.posts[i] =
-                                        await logic.getVideoInfo(context, url);
-                                    logic.notifyListeners();
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Icon(
-                                      Icons.replay,
-                                      color: Colors.white,
-                                      size: screen.convert(70, aspectRatio),
+                                        logic.posts[i] = await logic
+                                            .getVideoInfo(context, url);
+                                        logic.notifyListeners();
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(15.0),
+                                        child: Icon(
+                                          Icons.replay,
+                                          color: Colors.white,
+                                          size: screen.convert(70, aspectRatio),
+                                        ),
+                                      ),
+                                    ),
+                                  ))),
+                              Positioned.fill(
+                                child: Align(
+                                  alignment: Alignment(0.88, -0.85),
+                                  child: InkWell(
+                                    onTap: () {
+                                      print('!');
+                                      logic.posts.removeAt(i);
+                                      logic.notifyListeners();
+                                    },
+                                    child: SizedBox(
+                                      height: 30,
+                                      width: 30,
+                                      child: Material(
+                                        child: Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                        ),
+                                        color: Colors.red,
+                                        type: MaterialType.circle,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ))),
+                              ),
+                            ],
+                          ),
                           Divider()
                         ],
                       ),
