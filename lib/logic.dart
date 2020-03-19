@@ -32,6 +32,8 @@ class Logic with ChangeNotifier {
   List<Map> buttons;
   int index;
   RegExp instagramUrlRegex;
+
+  Future<bool> permission;
   var posts = List<Post>();
   TapGestureRecognizer tapGestureRecognizer;
   ReceivePort _port = ReceivePort();
@@ -46,12 +48,13 @@ class Logic with ChangeNotifier {
   }
 
   ProgressDialog progressDialog;
-
   Logic(TickerProvider tickerProvider, BuildContext context) {
     _bindBackgroundIsolate();
     FlutterDownloader.registerCallback(downloadCallback);
+    permission = checkPermission();
     instagramUrlRegex =
         RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
+
     progressDialog = new ProgressDialog(
       context,
       showLogs: true,

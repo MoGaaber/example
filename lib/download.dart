@@ -12,6 +12,7 @@ import 'package:flutter_downloader_example/myButton.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
 import 'package:flutter_downloader_example/test.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:launch_review/launch_review.dart';
@@ -31,6 +32,7 @@ class DownloadPage extends StatelessWidget {
     var height = screen.height;
     var width = screen.width;
     var aspectRatio = screen.aspectRatio;
+
     return Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
@@ -130,7 +132,7 @@ class DownloadPage extends StatelessWidget {
                   elevation: 0,
                 ),
                 body: FutureBuilder<bool>(
-                  future: logic.checkPermission(),
+                  future: logic.permission,
                   builder:
                       (BuildContext context, AsyncSnapshot<bool> snapshot) {
                     if (snapshot.connectionState == ConnectionState.done) {
