@@ -178,7 +178,6 @@ class Logic with ChangeNotifier {
   void initializeRewardAdListener() {
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
         {String rewardType, int rewardAmount}) async {
-      print(event);
       if (event == RewardedVideoAdEvent.failedToLoad ||
           event == RewardedVideoAdEvent.closed) {
         progressDialog.dismiss();
@@ -195,7 +194,6 @@ class Logic with ChangeNotifier {
       } else if (event == RewardedVideoAdEvent.rewarded ||
           event == RewardedVideoAdEvent.completed) {
         adStatus = AdStatus.rewarded;
-
         await Clipboard.setData(ClipboardData(text: this.copiedText));
       }
     };
@@ -222,15 +220,11 @@ class Logic with ChangeNotifier {
                   FlatButton(
                       onPressed: () async {
                         Navigator.pop(context);
-                        await progressDialog.show();
 
                         if (this.dontShowAgainCheckBox) {
                           await sharedPref.setBool('dontShowAgain', true);
                         }
-                        await rewardedVideoAd.load(
-                            adUnitId: RewardedVideoAd.testAdUnitId,
-                            targetingInfo: MobileAdTargetingInfo());
-                        progressDialog.dismiss();
+                        await this.rewardedVideoAd.show();
                       },
                       child: Text('نعم اوافق')),
                 ],
