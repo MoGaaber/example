@@ -5,12 +5,11 @@ class Saves extends StatefulWidget {
   _SavesState createState() => _SavesState();
 }
 
-//ListView(padding: EdgeInsets.only(top: 30),children: <Widget>[ListTile(title: Text('Test'),)],)
 class _SavesState extends State<Saves> {
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(padding: EdgeInsets.all(10)
-,
+    return GridView.builder(
+      padding: EdgeInsets.all(10),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: 3,
         crossAxisSpacing: 3,
@@ -22,7 +21,8 @@ class _SavesState extends State<Saves> {
         return InkWell(
           child: Image.network(
             'https://d2x51gyc4ptf2q.cloudfront.net/content/uploads/2020/01/20104912/Mo-Salah-Football365-700x366.jpg',
-            height: 100,width: 50,
+            height: 100,
+            width: 50,
             fit: BoxFit.cover,
           ),
         );

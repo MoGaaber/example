@@ -1,24 +1,15 @@
-import 'dart:convert';
-import 'dart:io';
-
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/download.dart';
-import 'package:flutter_downloader_example/info.dart';
-import 'package:flutter_downloader_example/insta.dart';
 import 'package:flutter_downloader_example/logic.dart';
-import 'package:flutter_downloader_example/saves.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' show parse;
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize();
+  await FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
 
   runApp(MyApp());
 }
@@ -30,26 +21,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  Future<bool> checkPermission() async {
-    if (Platform.isAndroid) {
-      PermissionStatus permission = await PermissionHandler()
-          .checkPermissionStatus(PermissionGroup.storage);
-      if (permission != PermissionStatus.granted) {
-        Map<PermissionGroup, PermissionStatus> permissions =
-            await PermissionHandler()
-                .requestPermissions([PermissionGroup.storage]);
-        if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
-          return true;
-        }
-      } else {
-        return true;
-      }
-    } else {
-      return true;
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

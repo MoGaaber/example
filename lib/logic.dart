@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
-import 'package:admob_flutter/admob_flutter.dart';
 import 'package:async/async.dart';
 import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:firebase_admob/firebase_admob.dart';
@@ -17,63 +16,118 @@ import 'package:flutter_downloader_example/button_State.dart';
 import 'package:flutter_downloader_example/constants.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:progress_dialog/progress_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-typedef DownloadOperations(String id);
+enum AdStatus { rewarded, unRewarded, loading, loaded }
 
 class Logic with ChangeNotifier {
-  List<Map> buttons;
-  int index;
-  RegExp instagramUrlRegex;
-
-  Future<bool> permission;
+  RegExp instagramUrlRegex =
+      RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
+  Animation<Offset> errorTextFieldAnim;
+  AnimationController errorTextFieldCont;
+  bool permissionState = true;
+  bool permissionIsCheckingNow = true;
+  AdStatus adStatus = AdStatus.loading;
+  var textFieldKey = GlobalKey<FormState>();
+  CancelableOperation<List<http.Response>> cancelableOperation;
   var posts = List<Post>();
-  TapGestureRecognizer tapGestureRecognizer;
   ReceivePort _port = ReceivePort();
-  num progress = 0;
   int postIndex;
-  GlobalKey<ScaffoldState> globalKey = GlobalKey();
+  GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   Screen screen;
+  RewardedVideoAd rewardedVideoAd;
+  Tween<Offset> tween = Tween<Offset>(begin: Offset(0, 0), end: Offset(0, 0));
+  ProgressDialog progressDialog;
+  InterstitialAd interstitialAd;
+  TextEditingController controller = TextEditingController();
+  bool rewardedVideoIsLoaded = false;
+  BuildContext context;
+  Logic(TickerProvider tickerProvider, BuildContext context) {
+    _bindBackgroundIsolate();
+    FlutterDownloader.registerCallback(downloadCallback);
+    rewardedVideoAd = RewardedVideoAd.instance;
+
+    initializeRewardAdListener();
+    checkPermission().then((x) {
+      permissionIsCheckingNow = false;
+      permissionState = x;
+      notifyListeners();
+    });
+
+    progressDialog = new ProgressDialog(
+      context,
+      showLogs: true,
+      isDismissible: true,
+      type: ProgressDialogType.Normal,
+    );
+
+    WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((x) async {
+      await this.progressDialog.show();
+      loadRewardedVideoAd();
+    });
+
+    this.context = context;
+    errorTextFieldCont = AnimationController(
+        vsync: tickerProvider, duration: Duration(milliseconds: 200));
+    errorTextFieldAnim = tween.animate(
+        CurvedAnimation(curve: Curves.bounceInOut, parent: errorTextFieldCont));
+  }
+  Future<String> findLocalPath(BuildContext context) async {
+    final directory = Theme.of(context).platform == TargetPlatform.android
+        ? await getExternalStorageDirectory()
+        : await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
   void showMore(int index) {
     this.postIndex = index;
     posts[index].fullTitle = !posts[index].fullTitle;
     notifyListeners();
   }
 
-  ProgressDialog progressDialog;
-  Logic(TickerProvider tickerProvider, BuildContext context) {
-    _bindBackgroundIsolate();
-    FlutterDownloader.registerCallback(downloadCallback);
-    permission = checkPermission();
-    instagramUrlRegex =
-        RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
-
-    progressDialog = new ProgressDialog(
-      context,
-      showLogs: true,
-      isDismissible: false,
-      type: ProgressDialogType.Normal,
-    );
-    rewardedVideoAd = RewardedVideoAd.instance;
-  }
-
-  TextEditingController controller = TextEditingController();
-
   Future<void> pasteUrl(BuildContext context) async {
     var data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data.text == null || data.text.isEmpty) {
+    if (data == null) {
+      tween.begin = Offset(-0.02, 0);
+      tween.begin = Offset(0.02, 0);
+
+      TickerFuture tickerFuture = errorTextFieldCont.repeat(
+        reverse: true,
+      );
+
+      tickerFuture.timeout(Duration(milliseconds: 600), onTimeout: () async {
+        errorTextFieldCont.animateBack(0.5);
+      });
       showSnackBar(context, 'لا يوجد اي نص فى الحافظة', false);
     } else {
-      controller.text = data?.text;
-      textFieldKey.currentState.validate();
+      if (data.text.isEmpty) {
+        showSnackBar(context, 'لا يوجد اي نص فى الحافظة', false);
+        tween.begin = Offset(-0.02, 0);
+        tween.begin = Offset(0.02, 0);
+
+        TickerFuture tickerFuture = errorTextFieldCont.repeat(
+          reverse: true,
+        );
+
+        tickerFuture.timeout(Duration(milliseconds: 600), onTimeout: () async {
+          errorTextFieldCont.animateBack(0.5);
+        });
+      } else {
+        controller.text = data?.text;
+        textFieldKey.currentState.validate();
+      }
     }
+  }
+
+  void testtt() {
+    ProgressDialog(context).show();
   }
 
   String textFieldValidator(BuildContext context, String text) {
@@ -89,81 +143,62 @@ class Logic with ChangeNotifier {
     }
   }
 
-  RewardedVideoAd rewardedVideoAd;
-  void showAd() async {
-    rewardedVideoAd.listener =
-        (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
-      if (event == RewardedVideoAdEvent.loaded) {
-        progressDialog.dismiss();
-        rewardedVideoAd.show();
-      }
-    };
-
-    await rewardedVideoAd.load(
-      adUnitId: RewardedVideoAd.testAdUnitId,
-      targetingInfo: MobileAdTargetingInfo(),
-    );
-  }
-
-  bool isFirstTime = true;
-  Future<void> testAd() async {
-    if (isFirstTime) {
-      await rewardedVideoAd.load(
-          adUnitId: RewardedVideoAd.testAdUnitId,
-          targetingInfo: MobileAdTargetingInfo());
-    } else {
-      await rewardedVideoAd.show();
-    }
-    rewardedVideoAd.listener = (RewardedVideoAdEvent event,
-        {String rewardType, int rewardAmount}) async {
-      print(event);
-      if (event == RewardedVideoAdEvent.started) {
-        await rewardedVideoAd.load(
-            adUnitId: RewardedVideoAd.testAdUnitId,
-            targetingInfo: MobileAdTargetingInfo());
-      } else if (event == RewardedVideoAdEvent.loaded && isFirstTime) {
-        isFirstTime = false;
-
-        rewardedVideoAd.show();
-      }
-    };
-  }
-
   Future<bool> loadRewardedVideoAd() async {
     return rewardedVideoAd.load(
         adUnitId: RewardedVideoAd.testAdUnitId,
         targetingInfo: MobileAdTargetingInfo());
   }
 
+  String copiedText = '';
   bool dontShowAgainCheckBox = true;
-  int status = 0;
   Future<void> copy(BuildContext context, String text) async {
+    if (adStatus == AdStatus.loaded) {
+      this.copiedText = text;
+      await progressDialog.show();
+      SharedPreferences sharedPref = await SharedPreferences.getInstance();
+      if (sharedPref.getBool('dontShowAgain') == null) {
+        await sharedPref.setBool('dontShowAgain', false);
+      }
+
+      if (sharedPref.getBool('dontShowAgain')) {
+        await rewardedVideoAd.show();
+      } else {
+        progressDialog.dismiss();
+        showWarningDialog(context, sharedPref);
+      }
+    } else {
+      showSnackBar(context, 'انتظر قليلا جاري تهيئه الاعلان', false);
+    }
+  }
+
+  int status = 0;
+
+  // 1 == loaded
+  bool adIsLoaded = false;
+  void initializeRewardAdListener() {
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
         {String rewardType, int rewardAmount}) async {
-      if (event == RewardedVideoAdEvent.loaded) {
-        await progressDialog.hide();
-        rewardedVideoAd.show();
-      } else if (event == RewardedVideoAdEvent.completed ||
-          event == RewardedVideoAdEvent.rewarded) {
-        await Clipboard.setData(ClipboardData(text: text));
-        showSnackBar(context, 'تم النسخ بنجاح', true);
-      } else if (event == RewardedVideoAdEvent.failedToLoad) {
+      print(event);
+      if (event == RewardedVideoAdEvent.failedToLoad ||
+          event == RewardedVideoAdEvent.closed) {
+        progressDialog.dismiss();
+        if (adStatus == AdStatus.rewarded) {
+          showSnackBar(context, 'تم النسخ بنجاح', true);
+        } else {
+          showSnackBar(
+              context, 'للاسف يجب انهاء الاهلان اولا لكي تستطيع النسخ', false);
+        }
+        adStatus = AdStatus.loading;
         await loadRewardedVideoAd();
+      } else if (event == RewardedVideoAdEvent.loaded) {
+        adStatus = AdStatus.loaded;
+      } else if (event == RewardedVideoAdEvent.rewarded ||
+          event == RewardedVideoAdEvent.completed) {
+        adStatus = AdStatus.rewarded;
+
+        await Clipboard.setData(ClipboardData(text: this.copiedText));
       }
     };
-    await progressDialog.show();
-
-    SharedPreferences sharedPref = await SharedPreferences.getInstance();
-    if (sharedPref.getBool('dontShowAgain') == null) {
-      await sharedPref.setBool('dontShowAgain', false);
-    }
-
-    if (sharedPref.getBool('dontShowAgain')) {
-      await loadRewardedVideoAd();
-    } else {
-      await progressDialog.hide();
-      showWarningDialog(context, sharedPref);
-    }
   }
 
   void showWarningDialog(BuildContext context, SharedPreferences sharedPref) {
@@ -242,7 +277,7 @@ class Logic with ChangeNotifier {
   }
 
   void showSnackBar(BuildContext context, String text, bool success) {
-    globalKey.currentState.showSnackBar(SnackBar(
+    scaffoldKey.currentState.showSnackBar(SnackBar(
       content: Text(
         text,
         style: GoogleFonts.cairo(
@@ -253,13 +288,12 @@ class Logic with ChangeNotifier {
     ));
   }
 
-  var textFieldKey = GlobalKey<FormState>();
-  CancelableOperation<Post> operation;
-
   Future<void> confirm(BuildContext context) async {
     var isValid = textFieldKey.currentState.validate();
+
     if (isValid) {
       var text = controller.text;
+
       var regex = RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
       var url = regex.stringMatch(text);
       if (!url.endsWith('/')) {
@@ -278,10 +312,6 @@ class Logic with ChangeNotifier {
 
   void clear() {
     controller.clear();
-  }
-
-  void downloadOperations(String id, DownloadOperations downloadOperations) {
-    downloadOperations(id);
   }
 
   Future<bool> checkPermission() async {
@@ -330,11 +360,13 @@ class Logic with ChangeNotifier {
   }
 
   Future<void> startDownload(BuildContext context, int index) async {
+    posts[index].downloadIsLocked = true;
+    notifyListeners();
     await this.progressDialog.show();
-    if (await DataConnectionChecker().hasConnection) {
-      posts[index].downloadIsLocked = true;
 
-      notifyListeners();
+    if (await DataConnectionChecker().hasConnection) {
+      progressDialog.dismiss();
+      interstitialAd?.show();
 
       posts[index].taskId = await FlutterDownloader.enqueue(
         savedDir: Constants.path,
@@ -342,21 +374,32 @@ class Logic with ChangeNotifier {
         url: posts[index].downloadUrl,
       );
     } else {
-      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
       this.progressDialog.dismiss();
+      posts[index].downloadIsLocked = false;
+      notifyListeners();
+
+      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
     }
-    progressDialog.dismiss();
+  }
+
+  InterstitialAd createInterstitialAd() {
+    return InterstitialAd(
+      adUnitId: InterstitialAd.testAdUnitId,
+      listener: (MobileAdEvent event) {
+        if (event == MobileAdEvent.opened ||
+            event == MobileAdEvent.failedToLoad) {
+          interstitialAd?.dispose();
+          interstitialAd = createInterstitialAd();
+          interstitialAd.load();
+        }
+        print(event);
+      },
+    );
   }
 
   void openDownload(String id) async {
     await FlutterDownloader.open(taskId: id);
   }
-
-  void retryDownload(String id) async {
-    String newTaskId = await FlutterDownloader.retry(taskId: id);
-  }
-
-  CancelableOperation<List<http.Response>> cancelableOperation;
 
   Future<Post> getVideoInfo(BuildContext context, String url) async {
     cancelableOperation = CancelableOperation.fromFuture(
@@ -371,7 +414,9 @@ class Logic with ChangeNotifier {
       showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
       return Post(infoStatus: InfoStatus.connectionError, url: url);
     } catch (e) {
-      showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
+      print(e);
+
+      showSnackBar(context, 'ليبدو ان هناك مشكله فى الرابط المدخل', false);
 
       return null;
     }
@@ -449,22 +494,6 @@ class Logic with ChangeNotifier {
     }
   }
 
-  Widget downloadControl(int i) {
-    var post = posts[i];
-    var status = post.downloadCallbackModel?.status ?? null;
-    if (status == DownloadTaskStatus.complete) {
-      return PopupMenuButton(
-          color: Colors.black,
-          icon: Icon(
-            Icons.more_vert,
-            color: Colors.black,
-          ),
-          itemBuilder: (_) => [PopupMenuItem(child: Text('test'))]);
-    } else {
-      return SizedBox.shrink();
-    }
-  }
-
   static void downloadCallback(
       String id, DownloadTaskStatus status, int progress) {
     final SendPort send =
@@ -499,37 +528,3 @@ class Logic with ChangeNotifier {
     });
   }
 }
-
-/*
-  void pauseDownload(String id) async {
-    await FlutterDownloader.pause(taskId: id);
-  }
-
-  void resumeDownload(String id) async {
-    await FlutterDownloader.resume(taskId: id);
-  }
-    BannerAd myBanner = BannerAd(
-      // Replace the testAdUnitId with an ad unit id from the AdMob dash.
-      // https://developers.google.com/admob/android/test-ads
-      // https://developers.google.com/admob/ios/test-ads
-      adUnitId: BannerAd.testAdUnitId,
-      size: AdSize.smartBanner,
-      listener: (MobileAdEvent event) {
-        print("BannerAd event is $event");
-      },
-    );
-    myBanner
-      ..load()
-      ..show();
-          playPauseCont = AnimationController(
-        duration: const Duration(milliseconds: 500), vsync: tickerProvider);
-
-    animationController = AnimationController(
-        vsync: tickerProvider, duration: Duration(seconds: 2));
-
-    animation = Tween<double>(begin: 0, end: 360 / 360).animate(
-        CurvedAnimation(parent: animationController, curve: Curves.easeInCirc));
-  var arabicCharachterRegex = RegExp(
-      r"[\u0600-\u06ff]|[\u0750-\u077f]|[\ufb50-\ufc3f]|[\ufe70-\ufefc]");
-
- */

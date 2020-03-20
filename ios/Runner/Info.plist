@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<key>GADApplicationIdentifier</key>
+<string>ca-app-pub-5274531866088049~5038607798</string>
+
 <key>NSPhotoLibraryAddUsageDescription</key>
 <string>这里填写为什么需要相册写入权限的描述语句</string>
 

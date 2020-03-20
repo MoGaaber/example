@@ -1,25 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/constants.dart';
-import 'package:flutter_downloader_example/downloadd.dart';
-import 'package:flutter_downloader_example/myButton.dart';
-import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
-import 'package:flutter_downloader_example/test.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:launch_review/launch_review.dart';
 import 'package:provider/provider.dart';
-import 'package:share/share.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
+
 import 'logic.dart';
 
 class Loading extends StatelessWidget {
@@ -44,7 +28,7 @@ class Loading extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Shimmer.fromColors(
-                  enabled: false,
+                  enabled: true,
                   baseColor: Color(0xffE9E9E9),
                   highlightColor: Colors.white,
                   child: Container(
@@ -62,7 +46,7 @@ class Loading extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
                     Shimmer.fromColors(
-                      enabled: false,
+                      enabled: true,
                       baseColor: Color(0xffE9E9E9),
                       highlightColor: Colors.white,
                       child: Container(
@@ -75,7 +59,7 @@ class Loading extends StatelessWidget {
                         padding:
                             EdgeInsets.only(top: screen.convert(10, height))),
                     Shimmer.fromColors(
-                      enabled: false,
+                      enabled: true,
                       baseColor: Color(0xffE9E9E9),
                       highlightColor: Colors.white,
                       child: Container(
@@ -121,7 +105,7 @@ class Loading extends StatelessWidget {
                         right: screen.convert(5.0 * i, width),
                         left: screen.convert(10, width)),
                     child: Shimmer.fromColors(
-                      enabled: false,
+                      enabled: true,
                       baseColor: Color(0xffE9E9E9),
                       highlightColor: Colors.white,
                       child: Container(

@@ -1,26 +1,16 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/constants.dart';
-import 'package:flutter_downloader_example/downloadd.dart';
 import 'package:flutter_downloader_example/loading.dart';
 import 'package:flutter_downloader_example/myButton.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
-import 'package:flutter_downloader_example/test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:launch_review/launch_review.dart';
 import 'package:provider/provider.dart';
-import 'package:share/share.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
+
 import 'logic.dart';
 
 class Download extends StatelessWidget {
@@ -40,100 +30,112 @@ class Download extends StatelessWidget {
               behavior: ScrollBehavior(),
               child: ListView(
                 padding: EdgeInsets.only(
-                    bottom: screen.convert(50, height), top: 30),
+                    bottom: screen.convert(50, height),
+                    top: screen.convert(30, height)),
                 children: <Widget>[
                   Column(
                     children: <Widget>[
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Form(
-                          key: logic.textFieldKey,
-                          child: Stack(
-                            children: <Widget>[
-                              TextFormField(
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                                controller: logic.controller,
-                                validator: (text) =>
-                                    logic.textFieldValidator(context, text),
-                                decoration: InputDecoration(
-                                    fillColor: Colors.white,
-                                    filled: true,
-                                    contentPadding: EdgeInsets.all(18),
-                                    hintStyle: TextStyle(
-                                        fontWeight: FontWeight.w200,
-                                        color: Colors.black.withOpacity(0.2)),
-                                    helperText: '',
-                                    hintText: 'instagram.com/dummy/dummy',
-                                    errorStyle:
-                                        TextStyle(fontWeight: FontWeight.w700),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(10)),
-                                      borderSide: BorderSide(
-                                        width: screen.convert(1, width),
-                                        color: Colors.red,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: screen.convert(20, width)),
+                        child: SlideTransition(
+                          position: logic.errorTextFieldAnim,
+                          child: Form(
+                            key: logic.textFieldKey,
+                            child: Stack(
+                              children: <Widget>[
+                                TextFormField(
+                                  textAlignVertical: TextAlignVertical.center,
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                  controller: logic.controller,
+                                  validator: (text) =>
+                                      logic.textFieldValidator(context, text),
+                                  decoration: InputDecoration(
+                                      fillColor: Colors.white,
+                                      filled: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 15,
+                                        horizontal:
+                                            screen.convert(20, screen.width),
                                       ),
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.link,
-                                      color: Colors.purple,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(10)),
-                                      borderSide: BorderSide(
-                                        width: screen.convert(1.8, width),
-                                        color: Colors.purple,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(10)),
-                                      borderSide: BorderSide(
-                                          color: Colors.purple,
-                                          width: screen.convert(1, width)),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(10)),
-                                      borderSide: BorderSide(
-                                          color: Colors.purple,
-                                          width: screen.convert(1, width)),
-                                    ),
-                                    labelStyle:
-                                        GoogleFonts.cairo(color: Colors.green),
-                                    labelText: 'الصق الرابط هنا'),
-                              ),
-                              Positioned.fill(
-                                child: Align(
-                                  alignment: Alignment(-0.95, -0.43),
-                                  child: InkWell(
-                                    onTap: () {
-                                      print('!!');
-                                      logic.clear();
-                                    },
-                                    child: Container(
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.clear,
-                                          size: screen.convert(15, aspectRatio),
+                                      hintStyle: TextStyle(
+                                          fontWeight: FontWeight.w200,
+                                          color: Colors.black.withOpacity(0.2)),
+                                      helperText: '',
+                                      hintText: 'instagram.com/dummy/dummy',
+                                      errorStyle: TextStyle(
+                                          fontWeight: FontWeight.w700),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                        borderSide: BorderSide(
+                                          width: screen.convert(1, width),
+                                          color: Colors.red,
                                         ),
                                       ),
-                                      width: screen.convert(25, width),
-                                      height: screen.convert(25, width),
-                                      decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle),
+                                      prefixIcon: Icon(
+                                        Icons.link,
+                                        color: Colors.purple,
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                        borderSide: BorderSide(
+                                          width: screen.convert(1.8, width),
+                                          color: Colors.purple,
+                                        ),
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                        borderSide: BorderSide(
+                                            color: Colors.purple,
+                                            width: screen.convert(1, width)),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(10)),
+                                        borderSide: BorderSide(
+                                            color: Colors.purple,
+                                            width: screen.convert(1, width)),
+                                      ),
+                                      labelStyle: GoogleFonts.cairo(
+                                          color: Colors.green),
+                                      labelText: 'الصق الرابط هنا'),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment(-0.95, -0.43),
+                                    child: InkWell(
+                                      onTap: () {
+                                        print('!!');
+                                        logic.clear();
+                                      },
+                                      child: Container(
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.clear,
+                                            size:
+                                                screen.convert(15, aspectRatio),
+                                          ),
+                                        ),
+                                        width: screen.convert(25, width),
+                                        height: screen.convert(25, width),
+                                        decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 50),
+                        padding:
+                            EdgeInsets.only(bottom: screen.convert(50, height)),
                         child: ButtonTheme(
                           height: screen.convert(60, height),
                           minWidth: screen.convert(150, width),
@@ -151,7 +153,7 @@ class Download extends StatelessWidget {
                         ),
                       ),
                       Divider(
-                        height: 10,
+                        height: screen.convert(10, height),
                         color: Colors.black.withOpacity(0.2),
                       ),
                     ],
@@ -163,7 +165,11 @@ class Download extends StatelessWidget {
                       Column(
                         children: <Widget>[
                           Padding(
-                            padding: EdgeInsets.all(10),
+                            padding: EdgeInsets.only(
+                                bottom: screen.convert(20, height),
+                                top: screen.convert(10, height),
+                                right: screen.convert(10, width),
+                                left: screen.convert(10, width)),
                             child: Column(
                               children: <Widget>[
                                 Row(
@@ -183,14 +189,16 @@ class Download extends StatelessWidget {
                                                   child:
                                                       CircularProgressIndicator()));
                                         },
-                                        width: screen.convert(60, width),
+                                        width: screen.convert(65, width),
                                         height: screen.convert(65, height),
                                         fit: BoxFit.cover,
                                         imageUrl:
                                             logic.posts[i].owner.profilePic,
                                       ),
                                     ),
-                                    Padding(padding: EdgeInsets.only(left: 10)),
+                                    Padding(
+                                        padding: EdgeInsets.only(
+                                            left: screen.convert(10, width))),
                                     Expanded(
                                       flex: 10,
                                       child: Column(
@@ -208,8 +216,9 @@ class Download extends StatelessWidget {
                                           ),
                                           Text(
                                             logic.posts[i].date.toString(),
-                                            style:
-                                                GoogleFonts.cairo(fontSize: 12),
+                                            style: GoogleFonts.cairo(
+                                                fontSize: screen.convert(
+                                                    12, aspectRatio)),
                                           )
                                         ],
                                       ),
@@ -228,8 +237,8 @@ class Download extends StatelessWidget {
                                         }
                                       },
                                       child: SizedBox(
-                                        height: 30,
-                                        width: 30,
+                                        height: screen.convert(30, height),
+                                        width: screen.convert(30, width),
                                         child: Material(
                                           child: Icon(
                                             Icons.close,
@@ -243,8 +252,8 @@ class Download extends StatelessWidget {
                                   ],
                                 ),
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 20),
+                                  padding: EdgeInsets.symmetric(
+                                      vertical: screen.convert(20, height)),
                                   child: Column(
                                     children: <Widget>[
                                       Text(
@@ -290,7 +299,9 @@ class Download extends StatelessWidget {
                                     width: screen.convert(330, width),
                                   ),
                                 ),
-                                Padding(padding: EdgeInsets.only(top: 20)),
+                                Padding(
+                                    padding: EdgeInsets.only(
+                                        top: screen.convert(20, height))),
                                 LinearProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.green),
@@ -314,7 +325,7 @@ class Download extends StatelessWidget {
                                       vertical: screen.convert(20, height)),
                                   child: ButtonTheme(
                                       minWidth: width,
-                                      height: 60,
+                                      height: screen.convert(60, height),
                                       child: FlatButton.icon(
                                           colorBrightness: Brightness.dark,
                                           color: Colors.green,
@@ -332,7 +343,11 @@ class Download extends StatelessWidget {
                                                         context, i);
                                                   }
                                                 },
-                                          icon: Icon(FontAwesomeIcons.download),
+                                          icon: Icon(
+                                            FontAwesomeIcons.download,
+                                            size:
+                                                screen.convert(24, aspectRatio),
+                                          ),
                                           label: Text(
                                             logic.buttonState(i).text,
                                             style: TextStyle(
@@ -396,6 +411,7 @@ class Download extends StatelessWidget {
                               ],
                             ),
                           ),
+                          Divider()
                         ],
                       )
                     else if (logic.posts[i].infoStatus == null)
@@ -447,8 +463,8 @@ class Download extends StatelessWidget {
                                       logic.notifyListeners();
                                     },
                                     child: SizedBox(
-                                      height: 30,
-                                      width: 30,
+                                      height: screen.convert(30, height),
+                                      width: screen.convert(30, width),
                                       child: Material(
                                         child: Icon(
                                           Icons.close,

@@ -1,5 +1,5 @@
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/logic.dart';
+import 'package:intl/intl.dart';
 
 enum InfoStatus { loading, connectionError, success }
 
@@ -24,7 +24,8 @@ class Post {
     this.thumbnail,
   });
 
-  DateTime get date => DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000);
+  String get date => DateFormat('d/m/y - hh:mm ')
+      .format(DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000));
   String get firstPart => title.substring(0, (title.length - 1) ~/ 2);
   String get getTitle {
     if (title.length <= 40) {
