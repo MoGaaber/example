@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -25,12 +26,6 @@ class DownloadPage extends StatelessWidget {
     var width = screen.width;
     var aspectRatio = screen.aspectRatio;
 
-/*
-    RewardedVideoAd.instance.load(
-        adUnitId: RewardedVideoAd.testAdUnitId,
-        targetingInfo: MobileAdTargetingInfo());
-*/
-    logic.initializeRewardAdListener();
     return Consumer<Logic>(
       builder: (BuildContext context, Logic logic, Widget child) =>
           Directionality(
@@ -50,10 +45,24 @@ class DownloadPage extends StatelessWidget {
                                     child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
+                                    Image.asset(
+                                      'assets/logo.png',
+                                      height: screen.convert(80, height),
+                                      width: screen.convert(80, width),
+                                      fit: BoxFit.contain,
+                                    ),
                                     Padding(
                                         padding: EdgeInsets.symmetric(
                                             vertical:
                                                 screen.convert(5, height))),
+                                    Text(
+                                      'Insta Down Pro',
+                                      style: GoogleFonts.cairo(
+                                          color: Colors.white,
+                                          fontSize:
+                                              screen.convert(30, aspectRatio),
+                                          fontWeight: FontWeight.w700),
+                                    )
                                   ],
                                 )),
                                 decoration: BoxDecoration(
@@ -109,7 +118,7 @@ class DownloadPage extends StatelessWidget {
                                   await launch(url);
                                 } else {
                                   logic.showSnackBar(
-                                      context, 'هذا الرابط معطل الآن', false);
+                                      'هذا الرابط معطل الآن', false);
                                 }
                               },
                               leading: Icon(
@@ -169,7 +178,7 @@ class DownloadPage extends StatelessWidget {
                                                           logic.controller,
                                                       validator: (text) => logic
                                                           .textFieldValidator(
-                                                              context, text),
+                                                              text),
                                                       decoration:
                                                           InputDecoration(
                                                               fillColor:
@@ -334,7 +343,7 @@ class DownloadPage extends StatelessWidget {
                                                   }),
                                                   MyButton('لصق', Colors.purple,
                                                       () {
-                                                    logic.pasteUrl(context);
+                                                    logic.pasteUrl();
                                                   }),
                                                 ],
                                               ),
@@ -753,8 +762,9 @@ class DownloadPage extends StatelessWidget {
                                               Stack(
                                                 children: <Widget>[
                                                   Container(
-                                                      margin:
-                                                          EdgeInsets.all(10),
+                                                      margin: EdgeInsets.all(
+                                                          screen.convert(
+                                                              10, aspectRatio)),
                                                       height: screen.convert(
                                                           300, height),
                                                       color: Colors.grey

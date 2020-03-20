@@ -4,17 +4,19 @@ import 'package:intl/intl.dart';
 enum InfoStatus { loading, connectionError, success }
 
 class Post {
+
   String title, downloadUrl, hashtags, taskId, thumbnail, url;
 
   int timeStamp;
   bool fullTitle = false;
   bool downloadIsLocked = false;
-
+bool isVideo ;
   Owner owner;
   InfoStatus infoStatus;
   DownloadCallbackModel downloadCallbackModel;
   Post({
     this.url,
+    this.isVideo,
     this.infoStatus,
     this.title,
     this.downloadUrl,

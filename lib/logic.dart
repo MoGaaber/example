@@ -13,17 +13,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_downloader_example/button_State.dart';
-import 'package:flutter_downloader_example/constants.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:progress_dialog/progress_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+import 'constants.dart';
 
 enum AdStatus { rewarded, unRewarded, loading, loaded }
 
@@ -49,41 +49,56 @@ class Logic with ChangeNotifier {
   TextEditingController controller = TextEditingController();
   bool rewardedVideoIsLoaded = false;
   BuildContext context;
+  Directory saveDirectory;
+  Directory imagesDirectory;
+  Directory videosDirectory;
+  String LocalPath;
+
   Logic(TickerProvider tickerProvider, BuildContext context) {
     _bindBackgroundIsolate();
     FlutterDownloader.registerCallback(downloadCallback);
+    saveDirectory = Directory(Constants.path);
+    imagesDirectory = Directory(Constants.imagesPath);
+    videosDirectory = Directory(Constants.videosPath);
     rewardedVideoAd = RewardedVideoAd.instance;
-
     initializeRewardAdListener();
-    checkPermission().then((x) {
+    loadRewardedVideoAd();
+    interstitialAd = createInterstitialAd();
+    interstitialAd.load();
+
+    Future.wait([
+      checkPermission(),
+      saveDirectory.exists(),
+      imagesDirectory.exists(),
+      videosDirectory.exists()
+    ]).then((result) async {
+      permissionState = result[0];
+      if (!result[1]) {
+        await saveDirectory.create();
+      }
+      if (!result[2]) {
+        await imagesDirectory.create();
+      }
+      if (!result[3]) {
+        await videosDirectory.create();
+      }
+
       permissionIsCheckingNow = false;
-      permissionState = x;
       notifyListeners();
     });
 
     progressDialog = new ProgressDialog(
       context,
       showLogs: true,
-      isDismissible: true,
+      isDismissible: false,
       type: ProgressDialogType.Normal,
     );
-
-    WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((x) async {
-      await this.progressDialog.show();
-      loadRewardedVideoAd();
-    });
 
     this.context = context;
     errorTextFieldCont = AnimationController(
         vsync: tickerProvider, duration: Duration(milliseconds: 200));
     errorTextFieldAnim = tween.animate(
         CurvedAnimation(curve: Curves.bounceInOut, parent: errorTextFieldCont));
-  }
-  Future<String> findLocalPath(BuildContext context) async {
-    final directory = Theme.of(context).platform == TargetPlatform.android
-        ? await getExternalStorageDirectory()
-        : await getApplicationDocumentsDirectory();
-    return directory.path;
   }
 
   void showMore(int index) {
@@ -92,51 +107,41 @@ class Logic with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> pasteUrl(BuildContext context) async {
+  Future<void> pasteUrl() async {
     var data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data == null) {
-      tween.begin = Offset(-0.02, 0);
-      tween.begin = Offset(0.02, 0);
-
-      TickerFuture tickerFuture = errorTextFieldCont.repeat(
-        reverse: true,
-      );
-
-      tickerFuture.timeout(Duration(milliseconds: 600), onTimeout: () async {
-        errorTextFieldCont.animateBack(0.5);
-      });
-      showSnackBar(context, 'لا يوجد اي نص فى الحافظة', false);
+      showTextFieldError();
     } else {
       if (data.text.isEmpty) {
-        showSnackBar(context, 'لا يوجد اي نص فى الحافظة', false);
-        tween.begin = Offset(-0.02, 0);
-        tween.begin = Offset(0.02, 0);
-
-        TickerFuture tickerFuture = errorTextFieldCont.repeat(
-          reverse: true,
-        );
-
-        tickerFuture.timeout(Duration(milliseconds: 600), onTimeout: () async {
-          errorTextFieldCont.animateBack(0.5);
-        });
+        showTextFieldError();
       } else {
-        controller.text = data?.text;
+        controller.text = data.text;
         textFieldKey.currentState.validate();
       }
     }
   }
 
-  void testtt() {
-    ProgressDialog(context).show();
+  void showTextFieldError() {
+    showSnackBar('لا يوجد اي نص فى الحافظة', false);
+    tween.begin = Offset(-0.02, 0);
+    tween.begin = Offset(0.02, 0);
+
+    TickerFuture tickerFuture = errorTextFieldCont.repeat(
+      reverse: true,
+    );
+
+    tickerFuture.timeout(Duration(milliseconds: 600), onTimeout: () async {
+      errorTextFieldCont.animateBack(0.5);
+    });
   }
 
-  String textFieldValidator(BuildContext context, String text) {
+  String textFieldValidator(String text) {
     if (text.isEmpty) {
-      showSnackBar(context, 'لم يتم ادخال الرابط', false);
+      showSnackBar('لم يتم ادخال الرابط', false);
       return '';
     }
     if (instagramUrlRegex.allMatches(text).toList().length != 1) {
-      showSnackBar(context, 'الرابط المدخل غير صحيح', false);
+      showSnackBar('الرابط المدخل غير صحيح', false);
       return '';
     } else {
       return null;
@@ -164,16 +169,14 @@ class Logic with ChangeNotifier {
         await rewardedVideoAd.show();
       } else {
         progressDialog.dismiss();
-        showWarningDialog(context, sharedPref);
+        showWarningDialog(sharedPref);
       }
     } else {
-      showSnackBar(context, 'انتظر قليلا جاري تهيئه الاعلان', false);
+      showSnackBar('انتظر قليلا جاري تهيئه الاعلان', false);
     }
   }
 
   int status = 0;
-
-  // 1 == loaded
   bool adIsLoaded = false;
   void initializeRewardAdListener() {
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
@@ -182,10 +185,9 @@ class Logic with ChangeNotifier {
           event == RewardedVideoAdEvent.closed) {
         progressDialog.dismiss();
         if (adStatus == AdStatus.rewarded) {
-          showSnackBar(context, 'تم النسخ بنجاح', true);
+          showSnackBar('تم النسخ بنجاح', true);
         } else {
-          showSnackBar(
-              context, 'للاسف يجب انهاء الاهلان اولا لكي تستطيع النسخ', false);
+          showSnackBar('للاسف يجب انهاء الاهلان اولا لكي تستطيع النسخ', false);
         }
         adStatus = AdStatus.loading;
         await loadRewardedVideoAd();
@@ -199,7 +201,7 @@ class Logic with ChangeNotifier {
     };
   }
 
-  void showWarningDialog(BuildContext context, SharedPreferences sharedPref) {
+  void showWarningDialog(SharedPreferences sharedPref) {
     showDialog(
         barrierDismissible: false,
         context: context,
@@ -213,7 +215,7 @@ class Logic with ChangeNotifier {
                   FlatButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        showSnackBar(context,
+                        showSnackBar(
                             'يجب مشاهده الاعلان اولا كى تستطيع النسخ', false);
                       },
                       child: Text('لا أوافق')),
@@ -270,7 +272,7 @@ class Logic with ChangeNotifier {
             ));
   }
 
-  void showSnackBar(BuildContext context, String text, bool success) {
+  void showSnackBar(String text, bool success) {
     scaffoldKey.currentState.showSnackBar(SnackBar(
       content: Text(
         text,
@@ -356,23 +358,22 @@ class Logic with ChangeNotifier {
   Future<void> startDownload(BuildContext context, int index) async {
     posts[index].downloadIsLocked = true;
     notifyListeners();
-    await this.progressDialog.show();
-
     if (await DataConnectionChecker().hasConnection) {
-      progressDialog.dismiss();
-      interstitialAd?.show();
-
+      if (await interstitialAd.isLoaded()) {
+        interstitialAd?.show();
+      } else {
+        showSnackBar('لم يتم تحميل الاعلان انتظر قليلا', false);
+      }
       posts[index].taskId = await FlutterDownloader.enqueue(
-        savedDir: Constants.path,
+        savedDir:
+            posts[index].isVideo ? Constants.videosPath : Constants.imagesPath,
         fileName: '${Uuid().v1()}',
         url: posts[index].downloadUrl,
       );
     } else {
-      this.progressDialog.dismiss();
       posts[index].downloadIsLocked = false;
       notifyListeners();
-
-      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
+      showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
     }
   }
 
@@ -380,13 +381,12 @@ class Logic with ChangeNotifier {
     return InterstitialAd(
       adUnitId: InterstitialAd.testAdUnitId,
       listener: (MobileAdEvent event) {
-        if (event == MobileAdEvent.opened ||
+        if (event == MobileAdEvent.closed ||
             event == MobileAdEvent.failedToLoad) {
           interstitialAd?.dispose();
           interstitialAd = createInterstitialAd();
           interstitialAd.load();
         }
-        print(event);
       },
     );
   }
@@ -397,20 +397,21 @@ class Logic with ChangeNotifier {
 
   Future<Post> getVideoInfo(BuildContext context, String url) async {
     cancelableOperation = CancelableOperation.fromFuture(
-        Future.wait([http.get(url + '?__a=1'), http.get(url)]), onCancel: () {
-      showSnackBar(context, 'تم ايقاف عرض المنشور بنجاح', true);
-    });
+        Future.wait([http.get(url + '?__a=1'), http.get(url)]),
+        onCancel: () {});
 
     List<http.Response> responses;
     try {
       responses = await cancelableOperation.value;
     } on SocketException {
-      showSnackBar(context, 'يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
+      showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
       return Post(infoStatus: InfoStatus.connectionError, url: url);
     } catch (e) {
       print(e);
 
-      showSnackBar(context, 'ليبدو ان هناك مشكله فى الرابط المدخل', false);
+      showSnackBar(
+          'حاول مره اخري قد يكون الرابط المدخل به محتوي لا ندعمه الآن او به مشكله',
+          false);
 
       return null;
     }
@@ -475,14 +476,15 @@ class Logic with ChangeNotifier {
             downloadUrl: downloadUrl,
             hashtags: hashtags,
             thumbnail: thumbnail,
+            isVideo: isVideo,
             owner: Owner(profilePic: profilePic, userName: userName));
       } catch (e) {
         print(e.toString() + '!');
 
-        showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
+        showSnackBar('يبدو ان هناك مشكله فى الرابط المدخل', false);
       }
     } else {
-      showSnackBar(context, 'يبدو ان هناك مشكله فى الرابط المدخل', false);
+      showSnackBar('يبدو ان هناك مشكله فى الرابط المدخل', false);
 
       return null;
     }
