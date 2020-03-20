@@ -1,6 +1,8 @@
-class ButtonState {
+import 'package:flutter/material.dart';
+
+class DownloadButtonState {
   String text;
   bool locked;
-
-  ButtonState(this.text, {this.locked = true});
+  Color color;
+  DownloadButtonState(this.text, this.locked);
 }

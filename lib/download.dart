@@ -25,7 +25,6 @@ class DownloadPage extends StatelessWidget {
     var height = screen.height;
     var width = screen.width;
     var aspectRatio = screen.aspectRatio;
-
     return Consumer<Logic>(
       builder: (BuildContext context, Logic logic, Widget child) =>
           Directionality(
@@ -471,10 +470,48 @@ class DownloadPage extends StatelessWidget {
                                                                 .downloadCallbackModel
                                                                 ?.status;
                                                             if (status ==
-                                                                DownloadTaskStatus
-                                                                    .running) {
-                                                              logic.cancelDownload(
-                                                                  post.taskId);
+                                                                    DownloadTaskStatus
+                                                                        .running ||
+                                                                logic.posts[i]
+                                                                    .isConnecting) {
+                                                              showDialog(
+                                                                  barrierDismissible:
+                                                                      false,
+                                                                  context:
+                                                                      context,
+                                                                  builder: (con) =>
+                                                                      AlertDialog(
+                                                                        actions: <
+                                                                            Widget>[
+                                                                          FlatButton(
+                                                                            onPressed:
+                                                                                () async {
+                                                                              if (logic.posts[i].isConnecting) {
+                                                                                logic.posts[i].isGoingToCancel = true;
+                                                                              } else {
+                                                                                logic.cancelDownload(logic.posts[i].taskId);
+                                                                              }
+                                                                              Navigator.pop(context);
+                                                                              logic.showSnackBar('تم ايقاف التنزيل', false);
+                                                                            },
+                                                                            child:
+                                                                                Text('نعم'),
+                                                                          ),
+                                                                          FlatButton(
+                                                                            onPressed:
+                                                                                () {
+                                                                              Navigator.pop(context);
+                                                                            },
+                                                                            child:
+                                                                                Text('لا'),
+                                                                          )
+                                                                        ],
+                                                                        content:
+                                                                            Text('هل تريد الغاء هذا التنزيل ؟'),
+                                                                        shape: RoundedRectangleBorder(
+                                                                            borderRadius:
+                                                                                BorderRadius.all(Radius.circular(15))),
+                                                                      ));
                                                             } else {
                                                               logic.posts
                                                                   .removeAt(i);
@@ -624,14 +661,16 @@ class DownloadPage extends StatelessWidget {
                                                                   color: Colors
                                                                       .green,
                                                                   onPressed: logic
-                                                                          .buttonState(
-                                                                              i)
-                                                                          .locked
+                                                                          .posts[
+                                                                              i]
+                                                                          .downloadIsLocked
                                                                       ? null
                                                                       : () {
-                                                                          var buttonState =
-                                                                              logic.buttonState(i);
-                                                                          if (buttonState.text ==
+                                                                          if (logic
+                                                                              .posts[i].isGoingToCancel)
+                                                                            logic.posts[i].isGoingToCancel =
+                                                                                false;
+                                                                          if (logic.posts[i].buttonText ==
                                                                               'اكتمل التحميل افتح الآن') {
                                                                             logic.openDownload(logic.posts[i].taskId);
                                                                           } else {
@@ -649,9 +688,13 @@ class DownloadPage extends StatelessWidget {
                                                                   ),
                                                                   label: Text(
                                                                     logic
-                                                                        .buttonState(
-                                                                            i)
-                                                                        .text,
+                                                                            .posts[
+                                                                                i]
+                                                                            .isConnecting
+                                                                        ? 'جاري الاتصال بالانترنت'
+                                                                        : logic
+                                                                            .posts[i]
+                                                                            .buttonText,
                                                                     style: TextStyle(
                                                                         fontSize: screen.convert(
                                                                             16,

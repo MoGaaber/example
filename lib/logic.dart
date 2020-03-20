@@ -12,7 +12,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/button_State.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -43,7 +42,8 @@ class Logic with ChangeNotifier {
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   Screen screen;
   RewardedVideoAd rewardedVideoAd;
-  Tween<Offset> tween = Tween<Offset>(begin: Offset(0, 0), end: Offset(0, 0));
+  Tween<Offset> tween =
+      Tween<Offset>(begin: Offset(-0.02, 0), end: Offset(0.02, 0));
   ProgressDialog progressDialog;
   InterstitialAd interstitialAd;
   TextEditingController controller = TextEditingController();
@@ -53,10 +53,13 @@ class Logic with ChangeNotifier {
   Directory imagesDirectory;
   Directory videosDirectory;
   String LocalPath;
+  String copiedText = '';
+  bool dontShowAgainCheckBox = true;
 
   Logic(TickerProvider tickerProvider, BuildContext context) {
     _bindBackgroundIsolate();
     FlutterDownloader.registerCallback(downloadCallback);
+
     saveDirectory = Directory(Constants.path);
     imagesDirectory = Directory(Constants.imagesPath);
     videosDirectory = Directory(Constants.videosPath);
@@ -82,7 +85,6 @@ class Logic with ChangeNotifier {
       if (!result[3]) {
         await videosDirectory.create();
       }
-
       permissionIsCheckingNow = false;
       notifyListeners();
     });
@@ -123,9 +125,6 @@ class Logic with ChangeNotifier {
 
   void showTextFieldError() {
     showSnackBar('لا يوجد اي نص فى الحافظة', false);
-    tween.begin = Offset(-0.02, 0);
-    tween.begin = Offset(0.02, 0);
-
     TickerFuture tickerFuture = errorTextFieldCont.repeat(
       reverse: true,
     );
@@ -137,10 +136,12 @@ class Logic with ChangeNotifier {
 
   String textFieldValidator(String text) {
     if (text.isEmpty) {
+      showTextFieldError();
       showSnackBar('لم يتم ادخال الرابط', false);
       return '';
     }
     if (instagramUrlRegex.allMatches(text).toList().length != 1) {
+      showTextFieldError();
       showSnackBar('الرابط المدخل غير صحيح', false);
       return '';
     } else {
@@ -154,8 +155,6 @@ class Logic with ChangeNotifier {
         targetingInfo: MobileAdTargetingInfo());
   }
 
-  String copiedText = '';
-  bool dontShowAgainCheckBox = true;
   Future<void> copy(BuildContext context, String text) async {
     if (adStatus == AdStatus.loaded) {
       this.copiedText = text;
@@ -176,8 +175,6 @@ class Logic with ChangeNotifier {
     }
   }
 
-  int status = 0;
-  bool adIsLoaded = false;
   void initializeRewardAdListener() {
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
         {String rewardType, int rewardAmount}) async {
@@ -334,46 +331,33 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  ButtonState buttonState(int index) {
-    var post = posts[index];
-    var downloadStatus = post.downloadCallbackModel?.status;
-    if (downloadStatus == DownloadTaskStatus.complete) {
-      return ButtonState('اكتمل التحميل افتح الآن', locked: false);
-    } else if (downloadStatus == null) {
-      if (post.downloadIsLocked) {
-        return ButtonState('فى انتظار شبكه الانترنت');
-      } else {
-        return ButtonState('ابدأ التحميل', locked: false);
-      }
-    } else if (downloadStatus == DownloadTaskStatus.canceled) {
-      return ButtonState('تم الغاء التحميل اعده مره اخري', locked: false);
-    } else if (downloadStatus == DownloadTaskStatus.failed ||
-        downloadStatus == DownloadTaskStatus.undefined) {
-      return ButtonState('فشل التحميل اعده مره اخري', locked: false);
-    } else {
-      return ButtonState('انتظر جاري التحميل');
-    }
-  }
-
+  bool isConnecting = false;
+  CancelableOperation<String> cancelableOperationn;
   Future<void> startDownload(BuildContext context, int index) async {
     posts[index].downloadIsLocked = true;
+    posts[index].isConnecting = true;
     notifyListeners();
     if (await DataConnectionChecker().hasConnection) {
       if (await interstitialAd.isLoaded()) {
-        interstitialAd?.show();
+        await interstitialAd?.show();
+
+        posts[index].taskId = await FlutterDownloader.enqueue(
+          savedDir: posts[index].isVideo
+              ? Constants.videosPath
+              : Constants.imagesPath,
+          fileName: '${Uuid().v1()}',
+          url: posts[index].downloadUrl,
+        );
+
+        posts[index].isConnecting = false;
       } else {
         showSnackBar('لم يتم تحميل الاعلان انتظر قليلا', false);
       }
-      posts[index].taskId = await FlutterDownloader.enqueue(
-        savedDir:
-            posts[index].isVideo ? Constants.videosPath : Constants.imagesPath,
-        fileName: '${Uuid().v1()}',
-        url: posts[index].downloadUrl,
-      );
     } else {
-      posts[index].downloadIsLocked = false;
-      notifyListeners();
       showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
+      posts[index].downloadIsLocked = false;
+      posts[index].isConnecting = false;
+      notifyListeners();
     }
   }
 
@@ -519,7 +503,15 @@ class Logic with ChangeNotifier {
         }
       });
       posts[index].downloadCallbackModel = downloadCallbackModel;
-
+      if (downloadCallbackModel.status == DownloadTaskStatus.running ||
+          downloadCallbackModel.status == DownloadTaskStatus.enqueued) {
+        posts[index].downloadIsLocked = true;
+      } else {
+        posts[index].downloadIsLocked = false;
+      }
+      if (posts[index].isGoingToCancel) {
+        cancelDownload(posts[index].taskId);
+      }
       notifyListeners();
     });
   }
