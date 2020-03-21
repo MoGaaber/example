@@ -17,10 +17,9 @@ class Loading extends StatelessWidget {
     var screen = logic.screen;
     var height = screen.height;
     var width = screen.width;
-    var aspectRatio = screen.aspectRatio;
 
     return Padding(
-      padding: EdgeInsets.all(10),
+      padding: EdgeInsets.all(screen.convert(10, screen.aspectRatio)),
       child: Column(
         children: <Widget>[
           Row(

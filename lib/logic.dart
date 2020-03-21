@@ -34,6 +34,7 @@ class Logic with ChangeNotifier {
   bool permissionState = true;
   bool permissionIsCheckingNow = true;
   AdStatus adStatus = AdStatus.loading;
+  ScrollController scrollController = ScrollController();
   var textFieldKey = GlobalKey<FormState>();
   CancelableOperation<List<http.Response>> cancelableOperation;
   var posts = List<Post>();
@@ -41,13 +42,14 @@ class Logic with ChangeNotifier {
   int postIndex;
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   Screen screen;
+  bool reverse = false;
+
   RewardedVideoAd rewardedVideoAd;
   Tween<Offset> tween =
-      Tween<Offset>(begin: Offset(-0.02, 0), end: Offset(0.02, 0));
+      Tween<Offset>(begin: Offset(0.0, 0), end: Offset(0.0, 0));
   ProgressDialog progressDialog;
   InterstitialAd interstitialAd;
   TextEditingController controller = TextEditingController();
-  bool rewardedVideoIsLoaded = false;
   BuildContext context;
   Directory saveDirectory;
   Directory imagesDirectory;
@@ -124,7 +126,11 @@ class Logic with ChangeNotifier {
   }
 
   void showTextFieldError() {
-    showSnackBar('لا يوجد اي نص فى الحافظة', false);
+    if (tween.begin == Offset(0.0, 0.0)) {
+      tween.begin = Offset(-0.02, 0.0);
+      tween.end = Offset(0.02, 0.0);
+    }
+
     TickerFuture tickerFuture = errorTextFieldCont.repeat(
       reverse: true,
     );
@@ -150,7 +156,7 @@ class Logic with ChangeNotifier {
   }
 
   Future<bool> loadRewardedVideoAd() async {
-    return rewardedVideoAd.load(
+    return await rewardedVideoAd.load(
         adUnitId: RewardedVideoAd.testAdUnitId,
         targetingInfo: MobileAdTargetingInfo());
   }
@@ -178,18 +184,25 @@ class Logic with ChangeNotifier {
   void initializeRewardAdListener() {
     rewardedVideoAd.listener = (RewardedVideoAdEvent event,
         {String rewardType, int rewardAmount}) async {
-      if (event == RewardedVideoAdEvent.failedToLoad ||
-          event == RewardedVideoAdEvent.closed) {
-        progressDialog.dismiss();
+      print(event);
+      if (event == RewardedVideoAdEvent.closed) {
         if (adStatus == AdStatus.rewarded) {
           showSnackBar('تم النسخ بنجاح', true);
         } else {
-          showSnackBar('للاسف يجب انهاء الاهلان اولا لكي تستطيع النسخ', false);
+          showSnackBar('للاسف يجب انهاء الاعلان اولا لكي تستطيع النسخ', false);
         }
+        adStatus = AdStatus.loading;
+        notifyListeners();
+
+        progressDialog.dismiss();
+
+        await loadRewardedVideoAd();
+      } else if (event == RewardedVideoAdEvent.failedToLoad) {
         adStatus = AdStatus.loading;
         await loadRewardedVideoAd();
       } else if (event == RewardedVideoAdEvent.loaded) {
         adStatus = AdStatus.loaded;
+        notifyListeners();
       } else if (event == RewardedVideoAdEvent.rewarded ||
           event == RewardedVideoAdEvent.completed) {
         adStatus = AdStatus.rewarded;
@@ -237,8 +250,9 @@ class Logic with ChangeNotifier {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Text(
-                      'هل توافق على مشاهده اعلان فى كل مره قبل عمليه النسخ ؟',
+                      'هل توافق على مشاهده اعلان قبل عمليه النسخ ؟',
                       textDirection: TextDirection.rtl,
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
@@ -251,7 +265,7 @@ class Logic with ChangeNotifier {
                           style: GoogleFonts.cairo(
                               fontSize: 12,
                               color: Colors.black,
-                              fontWeight: FontWeight.w500),
+                              fontWeight: FontWeight.w600),
                         ),
                         Checkbox(
                           value: this.dontShowAgainCheckBox,
@@ -273,6 +287,7 @@ class Logic with ChangeNotifier {
     scaffoldKey.currentState.showSnackBar(SnackBar(
       content: Text(
         text,
+        textDirection: TextDirection.rtl,
         style: GoogleFonts.cairo(
           fontWeight: FontWeight.w600,
         ),
@@ -285,6 +300,8 @@ class Logic with ChangeNotifier {
     var isValid = textFieldKey.currentState.validate();
 
     if (isValid) {
+      controller.clear();
+
       var text = controller.text;
 
       var regex = RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
@@ -292,9 +309,13 @@ class Logic with ChangeNotifier {
       if (!url.endsWith('/')) {
         url += '/';
       }
+
       posts.add(Post(infoStatus: InfoStatus.loading, url: url));
       int index = posts.length - 1;
       notifyListeners();
+      if (posts.length > 1) {
+        showSnackBar('جاري تحميل المنشور', true);
+      }
       posts[index] = await getVideoInfo(context, 'https://' + url);
       if (posts[index] == null) {
         posts.removeAt(index);
@@ -331,15 +352,15 @@ class Logic with ChangeNotifier {
     await FlutterDownloader.cancel(taskId: id);
   }
 
-  bool isConnecting = false;
   CancelableOperation<String> cancelableOperationn;
   Future<void> startDownload(BuildContext context, int index) async {
     posts[index].downloadIsLocked = true;
-    posts[index].isConnecting = true;
     notifyListeners();
     if (await DataConnectionChecker().hasConnection) {
       if (await interstitialAd.isLoaded()) {
+/*
         await interstitialAd?.show();
+*/
 
         posts[index].taskId = await FlutterDownloader.enqueue(
           savedDir: posts[index].isVideo
@@ -348,15 +369,13 @@ class Logic with ChangeNotifier {
           fileName: '${Uuid().v1()}',
           url: posts[index].downloadUrl,
         );
-
-        posts[index].isConnecting = false;
       } else {
+        posts[index].downloadIsLocked = false;
         showSnackBar('لم يتم تحميل الاعلان انتظر قليلا', false);
       }
     } else {
       showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
       posts[index].downloadIsLocked = false;
-      posts[index].isConnecting = false;
       notifyListeners();
     }
   }
@@ -391,8 +410,6 @@ class Logic with ChangeNotifier {
       showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
       return Post(infoStatus: InfoStatus.connectionError, url: url);
     } catch (e) {
-      print(e);
-
       showSnackBar(
           'حاول مره اخري قد يكون الرابط المدخل به محتوي لا ندعمه الآن او به مشكله',
           false);
@@ -446,11 +463,9 @@ class Logic with ChangeNotifier {
             downloadUrl = thumbnail;
           }
         }
-        String title;
+        String title = '';
         List titleEdges = root['edge_media_to_caption']['edges'];
-        if (titleEdges.isEmpty) {
-          title = '';
-        } else {
+        if (titleEdges.isNotEmpty) {
           title = titleEdges[0]['node']['text'];
         }
         return Post(
@@ -496,19 +511,15 @@ class Logic with ChangeNotifier {
     _port.listen((dynamic data) {
       DownloadCallbackModel downloadCallbackModel = data;
       int index = posts.indexWhere((post) {
-        if (post.taskId == downloadCallbackModel.id) {
+        if (post.taskId == downloadCallbackModel.taskId) {
           return true;
         } else {
           return false;
         }
       });
       posts[index].downloadCallbackModel = downloadCallbackModel;
-      if (downloadCallbackModel.status == DownloadTaskStatus.running ||
-          downloadCallbackModel.status == DownloadTaskStatus.enqueued) {
-        posts[index].downloadIsLocked = true;
-      } else {
-        posts[index].downloadIsLocked = false;
-      }
+      posts[index].downloadIsLocked = false;
+
       if (posts[index].isGoingToCancel) {
         cancelDownload(posts[index].taskId);
       }

@@ -8,14 +8,14 @@ class Post {
 
   int timeStamp;
   bool fullTitle = false;
-  bool isConnecting = false;
-  bool downloadIsLocked = false;
   bool isVideo;
   Owner owner;
   String buttonTextt;
   InfoStatus infoStatus;
   bool isGoingToCancel = false;
   DownloadCallbackModel downloadCallbackModel;
+  bool downloadIsLocked = false;
+  bool isClicked = false;
   Post({
     this.url,
     this.isVideo,
@@ -27,7 +27,7 @@ class Post {
     this.hashtags,
     this.thumbnail,
   });
-  bool isClicked = false;
+
   String get date => DateFormat('d/m/y - hh:mm ')
       .format(DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000));
   String get firstPart => title.substring(0, (title.length - 1) ~/ 2);
@@ -85,7 +85,6 @@ class Owner {
 class DownloadCallbackModel {
   int progress;
   DownloadTaskStatus status;
-  String id;
-
-  DownloadCallbackModel(this.progress, this.status, this.id);
+  String taskId;
+  DownloadCallbackModel(this.progress, this.status, this.taskId);
 }
