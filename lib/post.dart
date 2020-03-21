@@ -67,10 +67,11 @@ class Post {
 }
 
 class Owner {
-  String profilePic, userName;
+  String profilePic, userName, profilePicHd;
 
   Owner({
     this.profilePic,
+    this.profilePicHd,
     this.userName,
   });
 

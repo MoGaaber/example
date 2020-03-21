@@ -1,12 +1,12 @@
 import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/download.dart';
 import 'package:flutter_downloader_example/logic.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'constants.dart';
+import 'download.dart';
 
 String localPath;
 Future<void> main() async {

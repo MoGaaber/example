@@ -157,8 +157,7 @@ class Logic with ChangeNotifier {
 
   Future<bool> loadRewardedVideoAd() async {
     return await rewardedVideoAd.load(
-        adUnitId: Constants.adRewardId,
-        targetingInfo: MobileAdTargetingInfo());
+        adUnitId: Constants.adRewardId, targetingInfo: MobileAdTargetingInfo());
   }
 
   Future<void> copy(BuildContext context, String text) async {
@@ -300,9 +299,8 @@ class Logic with ChangeNotifier {
     var isValid = textFieldKey.currentState.validate();
 
     if (isValid) {
-      controller.clear();
-
       var text = controller.text;
+      controller.clear();
 
       var regex = RegExp(r"instagram\.com/\D+/[-a-zA-Z0-9()@:%_\+.~#?&=]*/?");
       var url = regex.stringMatch(text);
@@ -358,9 +356,7 @@ class Logic with ChangeNotifier {
     notifyListeners();
     if (await DataConnectionChecker().hasConnection) {
       if (await interstitialAd.isLoaded()) {
-/*
         await interstitialAd?.show();
-*/
 
         posts[index].taskId = await FlutterDownloader.enqueue(
           savedDir: posts[index].isVideo
@@ -443,6 +439,9 @@ class Logic with ChangeNotifier {
         Map<String, dynamic> ownerRoot = root['owner'];
         var userName = ownerRoot['username'];
         var profilePic = ownerRoot['profile_pic_url'];
+        var user = await http.get('https://instagram.com/$userName/?__a=1');
+        var profilePicHd =
+            jsonDecode(user.body)['graphql']['user']['profile_pic_url_hd'];
         var date = root['taken_at_timestamp'];
         var thumbnail = root['display_url'];
         String downloadUrl;
@@ -476,7 +475,10 @@ class Logic with ChangeNotifier {
             hashtags: hashtags,
             thumbnail: thumbnail,
             isVideo: isVideo,
-            owner: Owner(profilePic: profilePic, userName: userName));
+            owner: Owner(
+                profilePicHd: profilePicHd,
+                profilePic: profilePic,
+                userName: userName));
       } catch (e) {
         print(e.toString() + '!');
 

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_downloader_example/photo_view.dart';
 import 'package:flutter_downloader_example/post.dart';
 import 'package:flutter_downloader_example/screen.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -450,36 +451,55 @@ class DownloadPage extends StatelessWidget {
                                                         CrossAxisAlignment
                                                             .center,
                                                     children: <Widget>[
-                                                      ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius.all(
-                                                                Radius.circular(
-                                                                    10)),
-                                                        child:
-                                                            CachedNetworkImage(
-                                                          placeholder:
-                                                              (context, text) {
-                                                            return SizedBox(
-                                                                height: screen
-                                                                    .convert(65,
-                                                                        height),
-                                                                width: screen
-                                                                    .convert(65,
-                                                                        width),
-                                                                child: Center(
-                                                                    child:
-                                                                        CircularProgressIndicator()));
+                                                      Material(
+                                                        child: InkWell(
+                                                          onTap: () {
+                                                            Navigator.of(context).push(MaterialPageRoute(
+                                                                builder: (BuildContext
+                                                                        context) =>
+                                                                    PhotoViewer(logic
+                                                                        .posts[
+                                                                            i]
+                                                                        .owner
+                                                                        .profilePicHd)));
                                                           },
-                                                          width: screen.convert(
-                                                              65, width),
-                                                          height:
-                                                              screen.convert(
-                                                                  65, height),
-                                                          fit: BoxFit.cover,
-                                                          imageUrl: logic
-                                                              .posts[i]
-                                                              .owner
-                                                              .profilePic,
+                                                          child: ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .all(Radius
+                                                                        .circular(
+                                                                            10)),
+                                                            child:
+                                                                CachedNetworkImage(
+                                                              placeholder:
+                                                                  (context,
+                                                                      text) {
+                                                                return SizedBox(
+                                                                    height: screen
+                                                                        .convert(
+                                                                            65,
+                                                                            height),
+                                                                    width: screen
+                                                                        .convert(
+                                                                            65,
+                                                                            width),
+                                                                    child: Center(
+                                                                        child:
+                                                                            CircularProgressIndicator()));
+                                                              },
+                                                              width: screen
+                                                                  .convert(65,
+                                                                      width),
+                                                              height: screen
+                                                                  .convert(65,
+                                                                      height),
+                                                              fit: BoxFit.cover,
+                                                              imageUrl: logic
+                                                                  .posts[i]
+                                                                  .owner
+                                                                  .profilePic,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                       Padding(
