@@ -157,7 +157,7 @@ class Logic with ChangeNotifier {
 
   Future<bool> loadRewardedVideoAd() async {
     return await rewardedVideoAd.load(
-        adUnitId: RewardedVideoAd.testAdUnitId,
+        adUnitId: Constants.adRewardId,
         targetingInfo: MobileAdTargetingInfo());
   }
 
@@ -382,7 +382,7 @@ class Logic with ChangeNotifier {
 
   InterstitialAd createInterstitialAd() {
     return InterstitialAd(
-      adUnitId: InterstitialAd.testAdUnitId,
+      adUnitId: Constants.adInterId,
       listener: (MobileAdEvent event) {
         if (event == MobileAdEvent.closed ||
             event == MobileAdEvent.failedToLoad) {

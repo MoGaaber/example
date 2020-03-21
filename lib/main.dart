@@ -6,11 +6,13 @@ import 'package:flutter_downloader_example/logic.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import 'constants.dart';
+
 String localPath;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize();
-  await FirebaseAdMob.instance.initialize(appId: FirebaseAdMob.testAppId);
+  await FirebaseAdMob.instance.initialize(appId: Constants.adAppId);
 
   runApp(MyApp());
 }
