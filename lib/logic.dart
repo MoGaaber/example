@@ -43,7 +43,6 @@ class Logic with ChangeNotifier {
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   Screen screen;
   bool reverse = false;
-
   RewardedVideoAd rewardedVideoAd;
   Tween<Offset> tween =
       Tween<Offset>(begin: Offset(0.0, 0), end: Offset(0.0, 0));
@@ -327,7 +326,6 @@ class Logic with ChangeNotifier {
   }
 
   Future<bool> checkPermission() async {
-    if (Platform.isAndroid) {
       PermissionStatus permission = await PermissionHandler()
           .checkPermissionStatus(PermissionGroup.storage);
       if (permission != PermissionStatus.granted) {
@@ -340,9 +338,6 @@ class Logic with ChangeNotifier {
       } else {
         return true;
       }
-    } else {
-      return true;
-    }
     return false;
   }
 
