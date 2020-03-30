@@ -1,4 +1,4 @@
-package vn.hunghd.example;
+package com.instadown.pro;
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;

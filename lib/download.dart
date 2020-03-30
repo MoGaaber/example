@@ -28,6 +28,7 @@ class DownloadPage extends StatelessWidget {
     var height = screen.height;
     var width = screen.width;
     var aspectRatio = screen.aspectRatio;
+
     return Consumer<Logic>(
       builder: (BuildContext context, Logic logic, Widget child) => SafeArea(
           child: Scaffold(
@@ -112,7 +113,7 @@ class DownloadPage extends StatelessWidget {
                           horizontal: screen.convert(10, width)),
                       onTap: () {
                         Share.share(
-                            'شارك تطبيقانا مع اصدقائك لتعم الفائده  https://play.google.com/store/apps/details?id=com.HNY.qurancareem',
+                            'شارك تطبيقانا مع اصدقائك لتعم الفائده  https://play.google.com/store/apps/details?id=com.instadown.pro',
                             subject: 'Look what I made!');
                       },
                       trailing: Icon(
@@ -132,7 +133,7 @@ class DownloadPage extends StatelessWidget {
                     Divider(),
                     ListTile(
                       onTap: () {
-                        LaunchReview.launch(androidAppId: "com.usatolebanese");
+                        LaunchReview.launch(androidAppId: "com.instadown.pro");
                       },
                       trailing: Icon(
                         Icons.star,
@@ -876,14 +877,16 @@ class DownloadPage extends StatelessWidget {
                                                                       .isEmpty
                                                                   ? SizedBox
                                                                       .shrink()
-                                                                  : RaisedButton(
+                                                                  : RaisedButton
+                                                                      .icon(
                                                                       onPressed: logic.adStatus ==
                                                                               AdStatus.loaded
                                                                           ? () {
                                                                               logic.copy(context, logic.posts[i].hashtags);
                                                                             }
                                                                           : null,
-                                                                      child: Text(
+                                                                      label:
+                                                                          Text(
                                                                         logic.adStatus ==
                                                                                 AdStatus.loaded
                                                                             ? 'نسخ الهاشتاق'
@@ -893,21 +896,34 @@ class DownloadPage extends StatelessWidget {
                                                                                 aspectRatio),
                                                                             fontWeight:
                                                                                 FontWeight.w900),
-                                                                      )),
+                                                                      ),
+                                                                      icon:
+                                                                          Icon(
+                                                                        Icons
+                                                                            .ondemand_video,
+                                                                        color: Colors
+                                                                            .orange,
+                                                                      ),
+                                                                    ),
                                                               logic
                                                                       .posts[i]
                                                                       .title
                                                                       .isEmpty
                                                                   ? SizedBox
                                                                       .shrink()
-                                                                  : RaisedButton(
-                                                                      onPressed: logic.adStatus ==
-                                                                              AdStatus.loaded
+                                                                  : RaisedButton.icon(
+                                                                      icon: Icon(
+                                                                        Icons
+                                                                            .ondemand_video,
+                                                                        color: Colors
+                                                                            .orange,
+                                                                      ),
+                                                                      onPressed: logic.adStatus == AdStatus.loaded
                                                                           ? () {
                                                                               logic.copy(context, logic.posts[i].title);
                                                                             }
                                                                           : null,
-                                                                      child: Text(
+                                                                      label: Text(
                                                                         logic.adStatus ==
                                                                                 AdStatus.loaded
                                                                             ? 'نسخ المحتوى'
