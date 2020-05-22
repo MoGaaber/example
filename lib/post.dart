@@ -1,53 +1,97 @@
+import 'dart:typed_data';
+
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:intl/intl.dart';
+import 'package:network_image_to_byte/network_image_to_byte.dart';
+
+class History {
+  String title, hashtags, url, thumbnail, fileName;
+  bool isVideo;
+  String downloadUrl;
+  Owner owner;
+  int key;
+  Uint8List uint8ListThumbnail;
+
+  int timeStamp;
+  String path;
+  Future<Uint8List> bytesOfImage() async =>
+      await networkImageToByte(this.thumbnail);
+  String get date => DateFormat('d/m/y - hh:mm ')
+      .format(DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000));
+
+  History(
+      {this.title,
+      this.hashtags,
+      this.thumbnail,
+      this.timeStamp,
+      this.key,
+      this.url,
+      this.isVideo,
+      this.owner,
+      this.fileName,
+      this.downloadUrl});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'hashtags': hashtags,
+      'thumbnail': thumbnail,
+      'isVideo': this.isVideo,
+      'fileName': this.fileName,
+      'owner': owner.toJson(),
+      'thumbnail': this.thumbnail,
+      'url': this.url,
+      'timeStamp': this.timeStamp,
+    };
+  }
+
+  History fromJson(Map myJson, int key) {
+    return History(
+        key: key,
+        fileName: fileName,
+        isVideo: myJson['isVideo'],
+        thumbnail: myJson['thumbnail'],
+        title: myJson['title'],
+        owner: Owner().fromJson(myJson['owner']),
+        url: myJson['url'],
+        hashtags: myJson['hashtags'],
+        timeStamp: myJson['timeStamp']);
+  }
+}
 
 enum InfoStatus { loading, connectionError, success }
 
 class Post {
-  String title, downloadUrl, hashtags, taskId, thumbnail, url;
+  History history;
 
-  int timeStamp;
   bool fullTitle = false;
-  bool isVideo;
-  Owner owner;
-  String buttonTextt;
+
+  String taskId, buttonTextt;
+
   InfoStatus infoStatus;
   bool isGoingToCancel = false;
   DownloadCallbackModel downloadCallbackModel;
   bool downloadIsLocked = false;
   bool isClicked = false;
+
   Post({
-    this.url,
-    this.isVideo,
     this.infoStatus,
-    this.title,
-    this.downloadUrl,
-    this.timeStamp,
-    this.owner,
-    this.hashtags,
-    this.thumbnail,
+    this.history,
+    this.taskId,
   });
 
-  String get date => DateFormat('d/m/y - hh:mm ')
-      .format(DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000));
-  String get firstPart => title.substring(0, (title.length - 1) ~/ 2);
+  String get firstPart =>
+      history.title.substring(0, (history.title.length - 1) ~/ 2);
   String get getTitle {
-    if (title.length <= 40) {
-      return title;
+    if (history.title.length <= 40) {
+      return history.title;
     } else {
-      return fullTitle ? title : firstPart;
+      return fullTitle ? history.title : firstPart;
     }
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'downloadUrl': downloadUrl,
-      'date': timeStamp,
-      'hashtags': hashtags,
-      'owner': owner.toJson(),
-      'thumbnail': thumbnail
-    };
+    return {'history': history.toJson()};
   }
 
   String get buttonText {
@@ -79,7 +123,15 @@ class Owner {
     return {
       'profilePic': profilePic,
       'userName': userName,
+      'profilePicHd': profilePicHd
     };
+  }
+
+  Owner fromJson(Map json) {
+    return Owner(
+        profilePic: json['profilePic'],
+        userName: json['userName'],
+        profilePicHd: json['profilePicHd']);
   }
 }
 

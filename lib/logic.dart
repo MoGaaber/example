@@ -17,12 +17,14 @@ import 'package:flutter_downloader_example/screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
+import 'package:network_image_to_byte/network_image_to_byte.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:progress_dialog/progress_dialog.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-
 import 'constants.dart';
+import 'history_logic.dart';
 
 enum AdStatus { rewarded, unRewarded, loading, loaded }
 
@@ -52,12 +54,14 @@ class Logic with ChangeNotifier {
   BuildContext context;
   Directory saveDirectory;
   Directory imagesDirectory;
+          HistoryLogic historyLogic ;
+
   Directory videosDirectory;
   String LocalPath;
   String copiedText = '';
   bool dontShowAgainCheckBox = true;
-
   Logic(TickerProvider tickerProvider, BuildContext context) {
+    historyLogic = Provider.of(context, listen: false); 
     _bindBackgroundIsolate();
     FlutterDownloader.registerCallback(downloadCallback);
 
@@ -69,7 +73,6 @@ class Logic with ChangeNotifier {
     loadRewardedVideoAd();
     interstitialAd = createInterstitialAd();
     interstitialAd.load();
-
     Future.wait([
       checkPermission(),
       saveDirectory.exists(),
@@ -92,7 +95,7 @@ class Logic with ChangeNotifier {
 
     progressDialog = new ProgressDialog(
       context,
-      showLogs: true,
+      showLogs: false,
       isDismissible: false,
       type: ProgressDialogType.Normal,
     );
@@ -307,7 +310,8 @@ class Logic with ChangeNotifier {
         url += '/';
       }
 
-      posts.add(Post(infoStatus: InfoStatus.loading, url: url));
+      posts.add(
+          Post(infoStatus: InfoStatus.loading, history: History(url: url)));
       int index = posts.length - 1;
       notifyListeners();
       if (posts.length > 1) {
@@ -326,18 +330,18 @@ class Logic with ChangeNotifier {
   }
 
   Future<bool> checkPermission() async {
-      PermissionStatus permission = await PermissionHandler()
-          .checkPermissionStatus(PermissionGroup.storage);
-      if (permission != PermissionStatus.granted) {
-        Map<PermissionGroup, PermissionStatus> permissions =
-            await PermissionHandler()
-                .requestPermissions([PermissionGroup.storage]);
-        if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
-          return true;
-        }
-      } else {
+    PermissionStatus permission = await PermissionHandler()
+        .checkPermissionStatus(PermissionGroup.storage);
+    if (permission != PermissionStatus.granted) {
+      Map<PermissionGroup, PermissionStatus> permissions =
+          await PermissionHandler()
+              .requestPermissions([PermissionGroup.storage]);
+      if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
         return true;
       }
+    } else {
+      return true;
+    }
     return false;
   }
 
@@ -354,11 +358,11 @@ class Logic with ChangeNotifier {
         await interstitialAd?.show();
 
         posts[index].taskId = await FlutterDownloader.enqueue(
-          savedDir: posts[index].isVideo
+          savedDir: posts[index].history.isVideo
               ? Constants.videosPath
               : Constants.imagesPath,
-          fileName: '${Uuid().v1()}',
-          url: posts[index].downloadUrl,
+          fileName: posts[index].history.fileName,
+          url: posts[index].history.downloadUrl,
         );
       } else {
         posts[index].downloadIsLocked = false;
@@ -399,7 +403,8 @@ class Logic with ChangeNotifier {
       responses = await cancelableOperation.value;
     } on SocketException {
       showSnackBar('يبدو ان هناك مشكله فى إتصالك بالإنترنت', false);
-      return Post(infoStatus: InfoStatus.connectionError, url: url);
+      return Post(
+          infoStatus: InfoStatus.connectionError, history: History(url: url));
     } catch (e) {
       showSnackBar(
           'حاول مره اخري قد يكون الرابط المدخل به محتوي لا ندعمه الآن او به مشكله',
@@ -437,7 +442,7 @@ class Logic with ChangeNotifier {
         var user = await http.get('https://instagram.com/$userName/?__a=1');
         var profilePicHd =
             jsonDecode(user.body)['graphql']['user']['profile_pic_url_hd'];
-        var date = root['taken_at_timestamp'];
+        var timeStamp = root['taken_at_timestamp'];
         var thumbnail = root['display_url'];
         String downloadUrl;
         bool isVideo;
@@ -463,17 +468,22 @@ class Logic with ChangeNotifier {
           title = titleEdges[0]['node']['text'];
         }
         return Post(
-            infoStatus: InfoStatus.success,
-            title: title,
-            timeStamp: date,
+          infoStatus: InfoStatus.success,
+          history: History(
             downloadUrl: downloadUrl,
-            hashtags: hashtags,
-            thumbnail: thumbnail,
-            isVideo: isVideo,
+            fileName: Uuid().v1(),
+            timeStamp: timeStamp,
             owner: Owner(
                 profilePicHd: profilePicHd,
                 profilePic: profilePic,
-                userName: userName));
+                userName: userName),
+            title: title,
+            url: url,
+            hashtags: hashtags,
+            thumbnail: thumbnail,
+            isVideo: isVideo,
+          ),
+        );
       } catch (e) {
         print(e.toString() + '!');
 
@@ -498,6 +508,7 @@ class Logic with ChangeNotifier {
   }
 
   void _bindBackgroundIsolate() {
+
     bool isSuccess = IsolateNameServer.registerPortWithName(
         _port.sendPort, 'downloader_send_port');
     if (!isSuccess) {
@@ -505,7 +516,7 @@ class Logic with ChangeNotifier {
       _bindBackgroundIsolate();
       return;
     }
-    _port.listen((dynamic data) {
+    _port.listen((dynamic data) async {
       DownloadCallbackModel downloadCallbackModel = data;
       int index = posts.indexWhere((post) {
         if (post.taskId == downloadCallbackModel.taskId) {
@@ -515,8 +526,18 @@ class Logic with ChangeNotifier {
         }
       });
       posts[index].downloadCallbackModel = downloadCallbackModel;
-      posts[index].downloadIsLocked = false;
+      if (downloadCallbackModel.status == DownloadTaskStatus.complete) {
+        var thumbnailUrl = posts[index].history.thumbnail;
+        await progressDialog.show();
+        posts[index].history.uint8ListThumbnail =
+            await networkImageToByte(thumbnailUrl);
+                                            historyLogic.dbOperations(
+                                    historyLogic.addElement,
+                                    history: logic.posts[i].history);
 
+        await progressDialog.dismiss();
+      }
+      posts[index].downloadIsLocked = false;
       if (posts[index].isGoingToCancel) {
         cancelDownload(posts[index].taskId);
       }
