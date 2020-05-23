@@ -1,16 +1,8 @@
-import 'dart:io';
-
 import 'package:expandable/expandable.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader_example/constants.dart';
-import 'package:flutter_downloader_example/history_logic.dart';
+import 'package:flutter_downloader_example/pages/history/history_logic.dart';
 import 'package:flutter_downloader_example/post.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:sembast/sembast.dart';
-import 'package:sembast/sembast_io.dart';
 import 'package:video_player/video_player.dart';
 
 class Details extends StatefulWidget {
@@ -59,7 +51,6 @@ class _DetailsState extends State<Details> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     HistoryLogic historyLogic = Provider.of(context, listen: false);
-//FilePicker.getFilePath(type: FileType.video).then((x){});
 
     return SafeArea(
         child: Scaffold(

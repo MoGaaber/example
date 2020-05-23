@@ -4,6 +4,8 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:intl/intl.dart';
 import 'package:network_image_to_byte/network_image_to_byte.dart';
 
+enum InfoStatus { loading, connectionError, success }
+
 class History {
   String title, hashtags, url, thumbnail, fileName;
   bool isVideo;
@@ -58,8 +60,6 @@ class History {
         timeStamp: myJson['timeStamp']);
   }
 }
-
-enum InfoStatus { loading, connectionError, success }
 
 class Post {
   History history;

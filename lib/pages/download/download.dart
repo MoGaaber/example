@@ -5,21 +5,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/history_logic.dart';
-import 'package:flutter_downloader_example/photo_view.dart';
+import 'package:flutter_downloader_example/pages/home/loading.dart';
+import 'package:flutter_downloader_example/pages/home/logic.dart';
+import 'package:flutter_downloader_example/pages/photo_view/photo_view.dart';
 import 'package:flutter_downloader_example/post.dart';
-import 'package:flutter_downloader_example/screen.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:launch_review/launch_review.dart';
 import 'package:provider/provider.dart';
-import 'package:sembast/sembast.dart';
-import 'package:share/share.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'loading.dart';
-import 'logic.dart';
 import 'myButton.dart';
 
 /*
@@ -173,12 +167,6 @@ class DownloadPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: false);
     var size = MediaQuery.of(context).size;
-    logic.screen = Screen(size: size);
-    logic.screen = Screen(size: size);
-    var screen = logic.screen;
-    var height = screen.height;
-    var width = screen.width;
-    var aspectRatio = screen.aspectRatio;
 
     return Consumer<Logic>(
       builder: (BuildContext context, Logic logic, Widget child) => SafeArea(
@@ -199,11 +187,11 @@ class DownloadPage extends StatelessWidget {
                               Icon(
                                 Icons.error,
                                 color: Colors.orange,
-                                size: screen.convert(120, aspectRatio),
+                                size: 10.h,
                               ),
                               ButtonTheme(
-                                minWidth: screen.convert(200, width),
-                                height: screen.convert(60, height),
+                                minWidth: 200.w,
+                                height: 60.h,
                                 child: FlatButton(
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.all(
@@ -214,7 +202,7 @@ class DownloadPage extends StatelessWidget {
                                       await logic.progressDialog.show();
                                       logic.permissionState =
                                           await logic.checkPermission();
-                                      logic.progressDialog.dismiss();
+//                                      logic.progressDialog.dismiss();
 
                                       logic.notifyListeners();
                                     },
@@ -236,12 +224,6 @@ class DownloadBody extends StatelessWidget {
   Widget build(BuildContext context) {
     Logic logic = Provider.of(context, listen: true);
     var size = MediaQuery.of(context).size;
-    logic.screen = Screen(size: size);
-    logic.screen = Screen(size: size);
-    var screen = logic.screen;
-    var height = screen.height;
-    var width = screen.width;
-    var aspectRatio = screen.aspectRatio;
 
     return CustomScrollView(
         physics: BouncingScrollPhysics(),
@@ -258,15 +240,14 @@ class DownloadBody extends StatelessWidget {
             iconTheme: IconThemeData(color: Colors.black),
             backgroundColor: Colors.white,
             elevation: 0,
-            expandedHeight: screen.convert(310, height),
+            expandedHeight: 310.h,
             flexibleSpace: FlexibleSpaceBar(
               background: Padding(
-                padding: EdgeInsets.only(top: screen.convert(70, height)),
+                padding: EdgeInsets.only(top: 70.h),
                 child: Column(
                   children: <Widget>[
                     Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: screen.convert(30, width)),
+                      padding: EdgeInsets.symmetric(horizontal: 30.w),
                       child: SlideTransition(
                         position: logic.errorTextFieldAnim,
                         child: Form(
@@ -283,9 +264,8 @@ class DownloadBody extends StatelessWidget {
                                     fillColor: Colors.white,
                                     filled: true,
                                     contentPadding: EdgeInsets.symmetric(
-                                      vertical: screen.convert(20, height),
-                                      horizontal:
-                                          screen.convert(20, screen.width),
+                                      vertical: 20.h,
+                                      horizontal: 20.w,
                                     ),
                                     hintStyle: TextStyle(
                                         fontWeight: FontWeight.w200,
@@ -296,12 +276,9 @@ class DownloadBody extends StatelessWidget {
                                         TextStyle(fontWeight: FontWeight.w700),
                                     errorBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              screen.convert(10, aspectRatio))),
+                                          Radius.circular(10.h)),
                                       borderSide: BorderSide(
-                                        width: screen.convert(
-                                            screen.convert(1.8, aspectRatio),
-                                            width),
+                                        width: 1.w,
                                         color: Colors.red,
                                       ),
                                     ),
@@ -311,28 +288,23 @@ class DownloadBody extends StatelessWidget {
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              screen.convert(10, aspectRatio))),
+                                          Radius.circular(10.h)),
                                       borderSide: BorderSide(
-                                        width: screen.convert(1.8, width),
+                                        width: 1.8.w,
                                         color: Colors.purple,
                                       ),
                                     ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              screen.convert(10, aspectRatio))),
+                                          Radius.circular(10.h)),
                                       borderSide: BorderSide(
-                                          color: Colors.purple,
-                                          width: screen.convert(1, width)),
+                                          color: Colors.purple, width: 1.w),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              screen.convert(10, aspectRatio))),
+                                          Radius.circular(10.w)),
                                       borderSide: BorderSide(
-                                          color: Colors.purple,
-                                          width: screen.convert(1, width)),
+                                          color: Colors.purple, width: 1.w),
                                     ),
                                     labelStyle:
                                         GoogleFonts.cairo(color: Colors.green),
@@ -350,11 +322,11 @@ class DownloadBody extends StatelessWidget {
                                       child: Center(
                                         child: Icon(
                                           Icons.clear,
-                                          size: screen.convert(15, aspectRatio),
+                                          size: 15.h,
                                         ),
                                       ),
-                                      width: screen.convert(25, width),
-                                      height: screen.convert(25, width),
+                                      width: 25.w,
+                                      height: 25.h,
                                       decoration: BoxDecoration(
                                           color: Colors.red,
                                           shape: BoxShape.circle),
@@ -368,11 +340,10 @@ class DownloadBody extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding:
-                          EdgeInsets.only(bottom: screen.convert(50, height)),
+                      padding: EdgeInsets.only(bottom: 50.h),
                       child: ButtonTheme(
-                        height: screen.convert(60, height),
-                        minWidth: screen.convert(150, width),
+                        height: 60.h,
+                        minWidth: 150.w,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: <Widget>[
@@ -387,7 +358,7 @@ class DownloadBody extends StatelessWidget {
                       ),
                     ),
                     Divider(
-                      height: screen.convert(10, height),
+                      height: 10.h,
                       color: Colors.black.withOpacity(0.2),
                     ),
                   ],
@@ -405,15 +376,11 @@ class DownloadBody extends StatelessWidget {
                   children: <Widget>[
                     Padding(
                       padding: EdgeInsets.only(
-                          bottom: screen.convert(20, height),
-                          top: screen.convert(10, height),
-                          right: screen.convert(10, width),
-                          left: screen.convert(10, width)),
+                          bottom: 20.h, top: 10.h, right: 10.w, left: 10.w),
                       child: Column(
                         children: <Widget>[
                           FlatButton(
                               onPressed: () async {
-
                                 print('success');
                               },
                               child: Text('add')),
@@ -439,14 +406,14 @@ class DownloadBody extends StatelessWidget {
                                     child: CachedNetworkImage(
                                       placeholder: (context, text) {
                                         return SizedBox(
-                                            height: screen.convert(65, height),
-                                            width: screen.convert(65, width),
+                                            height: 65.h,
+                                            width: 65.w,
                                             child: Center(
                                                 child:
                                                     CircularProgressIndicator()));
                                       },
-                                      width: screen.convert(65, width),
-                                      height: screen.convert(65, height),
+                                      width: 65.w,
+                                      height: 65.h,
                                       fit: BoxFit.cover,
                                       imageUrl: logic
                                           .posts[i].history.owner.profilePic,
@@ -454,9 +421,7 @@ class DownloadBody extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              Padding(
-                                  padding: EdgeInsets.only(
-                                      left: screen.convert(10, width))),
+                              Padding(padding: EdgeInsets.only(left: 10.w)),
                               Expanded(
                                 flex: 9,
                                 child: Column(
@@ -467,14 +432,11 @@ class DownloadBody extends StatelessWidget {
                                       logic.posts[i].history.owner.userName,
                                       style: TextStyle(
                                           fontWeight: FontWeight.w700,
-                                          fontSize:
-                                              screen.convert(20, aspectRatio)),
+                                          fontSize: 20.sp),
                                     ),
                                     Text(
                                       logic.posts[i].history.date.toString(),
-                                      style: GoogleFonts.cairo(
-                                          fontSize:
-                                              screen.convert(12, aspectRatio)),
+                                      style: GoogleFonts.cairo(fontSize: 12.sp),
                                     )
                                   ],
                                 ),
@@ -533,8 +495,8 @@ class DownloadBody extends StatelessWidget {
                                     }
                                   },
                                   child: SizedBox(
-                                    height: screen.convert(30, height),
-                                    width: screen.convert(30, width),
+                                    height: 30.h,
+                                    width: 30.w,
                                     child: Material(
                                       child: Icon(
                                         Icons.close,
@@ -549,14 +511,13 @@ class DownloadBody extends StatelessWidget {
                             ],
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: screen.convert(20, height)),
+                            padding: EdgeInsets.symmetric(vertical: 20.h),
                             child: Column(
                               children: <Widget>[
                                 Text(
                                   '${logic.posts[i].getTitle}',
                                   style: TextStyle(
-                                      fontSize: screen.convert(15, aspectRatio),
+                                      fontSize: 15.sp,
                                       fontWeight: FontWeight.w700),
                                 ),
                                 logic.posts[i].history.title.length > 40
@@ -584,16 +545,16 @@ class DownloadBody extends StatelessWidget {
                                 child: CachedNetworkImage(
                                   placeholder: (context, text) {
                                     return SizedBox(
-                                        height: screen.convert(400, height),
-                                        width: screen.convert(330, width),
+                                        height: 400.h,
+                                        width: 330.w,
                                         child: Center(
                                             child:
                                                 CircularProgressIndicator()));
                                   },
                                   imageUrl: logic.posts[i].history.thumbnail,
-                                  height: screen.convert(400, height),
+                                  height: 400.h,
                                   fit: BoxFit.cover,
-                                  width: screen.convert(330, width),
+                                  width: 330.w,
                                 ),
                               ),
                               Positioned.fill(
@@ -605,9 +566,7 @@ class DownloadBody extends StatelessWidget {
                               )
                             ],
                           ),
-                          Padding(
-                              padding: EdgeInsets.only(
-                                  top: screen.convert(20, height))),
+                          Padding(padding: EdgeInsets.only(top: 20.h)),
                           LinearProgressIndicator(
                             valueColor:
                                 AlwaysStoppedAnimation<Color>(Colors.green),
@@ -624,18 +583,13 @@ class DownloadBody extends StatelessWidget {
                             backgroundColor: Colors.purple.withOpacity(0.1),
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: screen.convert(
-                                20,
-                                height,
-                              ),
-                            ),
+                            padding: EdgeInsets.symmetric(vertical: 20.h),
                             child: ButtonTheme(
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(5))),
-                                minWidth: width,
-                                height: screen.convert(70, height),
+//                                minWidth: width,
+                                height: 70.h,
                                 child: FlatButton.icon(
                                     colorBrightness: Brightness.dark,
                                     color: Colors.green,
@@ -662,15 +616,14 @@ class DownloadBody extends StatelessWidget {
                                           },
                                     icon: Icon(
                                       FontAwesomeIcons.download,
-                                      size: screen.convert(24, aspectRatio),
+                                      size: 24.h,
                                     ),
                                     label: Text(
                                       logic.posts[i].downloadIsLocked
                                           ? 'جاري الاتصال بالانترنت'
                                           : logic.posts[i].buttonText,
                                       style: TextStyle(
-                                          fontSize:
-                                              screen.convert(17, aspectRatio),
+                                          fontSize: 17.h,
                                           fontWeight: FontWeight.w700),
                                     ))),
                           ),
@@ -683,13 +636,13 @@ class DownloadBody extends StatelessWidget {
                                           Radius.circular(10))),
                                   textTheme: ButtonTextTheme.primary,
                                   buttonColor: Colors.pink,
-                                  minWidth:
-                                      logic.posts[i].history.title.isEmpty ||
-                                              logic.posts[i].history.hashtags
-                                                  .isEmpty
-                                          ? width / 1.5
-                                          : screen.convert(150, width),
-                                  height: screen.convert(65, height),
+//                                  minWidth:
+//                                      logic.posts[i].history.title.isEmpty ||
+//                                              logic.posts[i].history.hashtags
+//                                                  .isEmpty
+//                                          ? width / 1.5
+//                                          : screen.convert(150, width),
+                                  height: 65.h,
                                   child: Row(
                                     mainAxisAlignment:
                                         logic.posts[i].history.title.isEmpty ||
@@ -716,8 +669,7 @@ class DownloadBody extends StatelessWidget {
                                                     ? 'نسخ الهاشتاق'
                                                     : 'جاري التجهيز',
                                                 style: TextStyle(
-                                                    fontSize: screen.convert(
-                                                        16, aspectRatio),
+                                                    fontSize: 16.sp,
                                                     fontWeight:
                                                         FontWeight.w900),
                                               ),
@@ -748,8 +700,7 @@ class DownloadBody extends StatelessWidget {
                                                     ? 'نسخ المحتوى'
                                                     : 'جاري التجهيز',
                                                 style: TextStyle(
-                                                    fontSize: screen.convert(
-                                                        16, aspectRatio),
+                                                    fontSize: 16.sp,
                                                     fontWeight:
                                                         FontWeight.w700),
                                               )),
@@ -770,9 +721,9 @@ class DownloadBody extends StatelessWidget {
                     Stack(
                       children: <Widget>[
                         Container(
-                            margin:
-                                EdgeInsets.all(screen.convert(10, aspectRatio)),
-                            height: screen.convert(300, height),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: 10.w, vertical: 10.h),
+                            height: 300.h,
                             color: Colors.grey.withOpacity(0.2),
                             child: Center(
                                 child: Material(
@@ -797,7 +748,7 @@ class DownloadBody extends StatelessWidget {
                                   child: Icon(
                                     Icons.replay,
                                     color: Colors.white,
-                                    size: screen.convert(70, aspectRatio),
+                                    size: 70.h,
                                   ),
                                 ),
                               ),
@@ -812,8 +763,8 @@ class DownloadBody extends StatelessWidget {
                                 logic.notifyListeners();
                               },
                               child: SizedBox(
-                                height: screen.convert(30, height),
-                                width: screen.convert(30, width),
+                                height: 30.h,
+                                width: 30.w,
                                 child: Material(
                                   child: Icon(
                                     Icons.close,
@@ -834,8 +785,7 @@ class DownloadBody extends StatelessWidget {
             },
             childCount: logic.posts.length,
           )),
-          SliverPadding(
-              padding: EdgeInsets.only(bottom: screen.convert(50, height)))
+          SliverPadding(padding: EdgeInsets.only(bottom: 50.h))
         ]);
   }
 }

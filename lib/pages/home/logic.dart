@@ -12,19 +12,18 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_downloader_example/pages/history/history_logic.dart';
 import 'package:flutter_downloader_example/post.dart';
-import 'package:flutter_downloader_example/screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import 'package:network_image_to_byte/network_image_to_byte.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:progress_dialog/progress_dialog.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'constants.dart';
-import 'history_logic.dart';
+
+import '../../constants.dart';
 
 enum AdStatus { rewarded, unRewarded, loading, loaded }
 
@@ -43,7 +42,6 @@ class Logic with ChangeNotifier {
   ReceivePort _port = ReceivePort();
   int postIndex;
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
-  Screen screen;
   bool reverse = false;
   RewardedVideoAd rewardedVideoAd;
   Tween<Offset> tween =
@@ -54,14 +52,14 @@ class Logic with ChangeNotifier {
   BuildContext context;
   Directory saveDirectory;
   Directory imagesDirectory;
-          HistoryLogic historyLogic ;
+  HistoryLogic historyLogic;
 
   Directory videosDirectory;
   String LocalPath;
   String copiedText = '';
   bool dontShowAgainCheckBox = true;
   Logic(TickerProvider tickerProvider, BuildContext context) {
-    historyLogic = Provider.of(context, listen: false); 
+//    historyLogic = Provider.of(context, listen: false);
     _bindBackgroundIsolate();
     FlutterDownloader.registerCallback(downloadCallback);
 
@@ -174,7 +172,7 @@ class Logic with ChangeNotifier {
       if (sharedPref.getBool('dontShowAgain')) {
         await rewardedVideoAd.show();
       } else {
-        progressDialog.dismiss();
+//        progressDialog.dismiss();
         showWarningDialog(sharedPref);
       }
     } else {
@@ -195,7 +193,7 @@ class Logic with ChangeNotifier {
         adStatus = AdStatus.loading;
         notifyListeners();
 
-        progressDialog.dismiss();
+//        progressDialog.dismiss();
 
         await loadRewardedVideoAd();
       } else if (event == RewardedVideoAdEvent.failedToLoad) {
@@ -508,7 +506,6 @@ class Logic with ChangeNotifier {
   }
 
   void _bindBackgroundIsolate() {
-
     bool isSuccess = IsolateNameServer.registerPortWithName(
         _port.sendPort, 'downloader_send_port');
     if (!isSuccess) {
@@ -531,11 +528,10 @@ class Logic with ChangeNotifier {
         await progressDialog.show();
         posts[index].history.uint8ListThumbnail =
             await networkImageToByte(thumbnailUrl);
-                                            historyLogic.dbOperations(
-                                    historyLogic.addElement,
-                                    history: logic.posts[i].history);
+//        historyLogic.dbOperations(historyLogic.addElement,
+//            history: logic.posts[i].history);
 
-        await progressDialog.dismiss();
+//        await progressDialog.dismiss();
       }
       posts[index].downloadIsLocked = false;
       if (posts[index].isGoingToCancel) {

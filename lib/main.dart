@@ -1,18 +1,16 @@
-import 'package:fancy_bottom_navigation/fancy_bottom_navigation.dart';
 import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_downloader_example/details_logic.dart';
-import 'package:flutter_downloader_example/history_logic.dart';
-import 'package:flutter_downloader_example/home_page.dart';
-import 'package:flutter_downloader_example/logic.dart';
-import 'package:flutter_downloader_example/post.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import 'constants.dart';
-import 'download.dart';
+import 'pages/details/details_logic.dart';
+import 'pages/history/history_logic.dart';
+import 'pages/home/home_page.dart';
+import 'pages/home/logic.dart';
 
 class MyBehavior extends ScrollBehavior {
   @override
@@ -27,7 +25,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize();
   await FirebaseAdMob.instance.initialize(appId: Constants.adAppId);
-
   runApp(MyApp());
 }
 
@@ -42,6 +39,13 @@ class _MyAppState extends State<MyApp>
   Widget build(BuildContext context) {
     return MultiProvider(
       child: MaterialApp(
+        builder: (BuildContext context, Widget widget) {
+          print(MediaQuery.of(context).size);
+          ScreenUtil.init(context, width: 360, height: 752);
+          return SafeArea(
+            child: widget,
+          );
+        },
         home: HomePage(),
         theme: ThemeData(
             fontFamily: GoogleFonts.cairo().fontFamily,

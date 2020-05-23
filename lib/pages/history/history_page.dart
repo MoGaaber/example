@@ -1,16 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader_example/history_logic.dart';
+import 'package:flutter_downloader_example/pages/details/details_page.dart';
 import 'package:flutter_downloader_example/post.dart';
-import 'package:network_image_to_byte/network_image_to_byte.dart';
 import 'package:provider/provider.dart';
 import 'package:sembast/sembast.dart';
-import 'details_page.dart';
+
+import 'history_logic.dart';
 
 Uint8List test;
 
@@ -23,11 +20,6 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     HistoryLogic historyLogic = Provider.of(context);
-    (historyLogic
-        .dbOperations(historyLogic.readElements, isVideo: true)
-        .then((x) {
-      print(x);
-    }));
     return DefaultTabController(
       length: 2,
       child: NestedScrollView(
@@ -66,15 +58,15 @@ class HistoryBody extends StatelessWidget {
   HistoryBody(this.isVideo);
   @override
   Widget build(BuildContext context) {
-    var provider = NetworkImage('');
     HistoryLogic historyLogic = Provider.of(context);
-    historyLogic
-        .dbOperations(historyLogic.readElements, isVideo: true)
-        .then((x) {
-      List<RecordSnapshot> list = x;
-
-      print(list[0].key.toString() + '!!!!!!!!!');
-    });
+    return FutureBuilder(
+        future: historyLogic.dbOperations(
+          historyLogic.readElements,
+          isVideo: this.isVideo,
+        ),
+        builder: (_, _snapShot) {
+          return Container(n b  );
+        });
 
     return FutureProvider<Object>(
       create: (_) => historyLogic.dbOperations(

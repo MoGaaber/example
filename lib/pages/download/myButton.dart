@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader_example/logic.dart';
+import 'package:flutter_downloader_example/pages/home/logic.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -21,7 +22,7 @@ class MyButton extends StatelessWidget {
           style: GoogleFonts.cairo(
               color: Colors.white,
               fontWeight: FontWeight.w700,
-              fontSize: logic.screen.convert(20, logic.screen.aspectRatio)),
+              fontSize: 20.sp),
         ));
   }
 }
